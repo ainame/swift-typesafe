@@ -9,5 +9,7 @@ TypeSafe AI JavaScript SDK (v0.6.0)
 https://github.com/typesafe-ai/typesafe-sdk-js
 MIT License; see LICENSES/typesafe-sdk-js.txt.
 
-The Swift implementation and macro API are independent Swift source.
+Swift implementation and modifications copyright (c) 2026 ainame,
+licensed under MIT. Upstream-derived material remains subject to the
+notices reproduced in LICENSES/.
 Third-party dependencies retain their respective licenses.
