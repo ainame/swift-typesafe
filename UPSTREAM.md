@@ -19,6 +19,20 @@ Python's request/response behavior, configuration, retries, errors, and logging 
 5. Run Swift Testing, compile Examples, and verify HTTP transport behavior on macOS and Linux.
 6. Commit the changes. Mirror the upstream version only after parity gates pass; tag from verified main without a `v` prefix.
 
-## Initial implementation status
+## Reviewed implementation
 
-Implementation and verification are in progress. No release tag has been created.
+Reviewed Python source: `_core/client/aio`, `_core/endpoints.py`, `_core/config.py`, `_core/questions.py`, `_core/question_types.py`, `_core/response_types.py`, `_core/transport.py`, `_core/errors.py`, `_core/retry.py`, `_core/logging.py`, `_core/schemas/base.py`, `_schemas/models.py`, public constants, and their behavioral tests.
+
+Reviewed JS source: `src/client.ts`, `types.ts`, `questions.ts`, `retry.ts`, `api-promise.ts`, and reliability/release regression tests.
+
+The initial port implements the API feature set with the deliberate Swift adaptations enumerated in [docs/parity.md](docs/parity.md). Runtime state and payload handling follow Python; macro-based static typing is an additional Swift layer. Wire models are handwritten and reviewed against upstream generated models and runtime corrections (including optional usage fields).
+
+## Verification
+
+- Swift 6.4.0 through swiftly.
+- macOS arm64 and Ubuntu 24.04 arm64: 41 runtime/API tests and 4 macro tests passed, including native HTTPClient round trips, retries, timeouts, and cancellation.
+- External example package compiled successfully on macOS arm64 and Ubuntu 24.04 arm64.
+- Upstream-sync skill validator passed.
+- Live TypeSafe API calls, hosted CI, and Apple mobile device/simulator tests were not run.
+
+This is a new local repository without a configured remote or merged PR history. The initial annotated `0.6.0` tag is created on verified `main`; publishing to GitHub is a separate operation.

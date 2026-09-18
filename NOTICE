@@ -3,7 +3,7 @@ TypeSafe Swift SDK includes behavior and test cases derived from:
 TypeSafe AI Python SDK (v0.6.0)
 https://github.com/typesafe-ai/typesafe-sdk-python
 MIT License; upstream copyright text is retained verbatim in
-vendor/typesafe-sdk-python/LICENSE.
+LICENSES/typesafe-sdk-python.txt (also in the upstream submodule).
 
 TypeSafe AI JavaScript SDK (v0.6.0)
 https://github.com/typesafe-ai/typesafe-sdk-js

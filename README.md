@@ -1,0 +1,151 @@
+# TypeSafe Swift SDK
+
+Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.6.0 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
+
+Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-proposal) package, pinned to 0.2.1. The proposal may change; its Swift 6.4 and OS requirements apply to this SDK.
+
+## Installation
+
+Add this package to your Swift package dependencies and the `TypeSafe` product to your target. During local development:
+
+```swift
+.package(path: "/path/to/typesafe-sdk-swift")
+```
+
+Releases mirror the reviewed upstream version, with tags such as `0.6.0` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
+
+## Typed questions
+
+Set `TYPESAFE_API_KEY`, or pass `apiKey` explicitly:
+
+```swift
+import TypeSafe
+
+enum Category: String, CaseIterable, Codable, Sendable {
+    case billing, technical, other
+}
+
+@QuestionSet
+struct TicketQuestions {
+    @Choice("What is this ticket about?")
+    var category: Category
+
+    @Noul("Does this need urgent attention?")
+    var urgent: Double
+
+    @Score("How severe is the issue?", criteria: ["minor", "moderate", "severe"])
+    var severity: Double
+}
+
+let client = try TypeSafeClient()
+let result = try await client.systemOne(
+    state: "I was charged twice.",
+    questions: TicketQuestions.self
+)
+
+print(result.answers.category.choice) // Category
+print(result.answers.urgent.noul)     // Probability, 0...1
+print(result.answers.severity.score)  // Expected score; may be fractional
+```
+
+`@QuestionSet` generates concrete typed answers. The declaration describes a schema; pass its type rather than constructing an instance. Choice enums must have `String` raw values and conform to `CaseIterable`, `Hashable`, and `Sendable`. No `.erased` conversion is needed.
+
+Use `criteria:` on `@Choice` to supply descriptions keyed by the enum's raw strings, or on `@Noul` with `"true"` and `"false"` keys. Instructions and descriptions accept text, JSON objects, or arrays. Missing answers, wrong answer kinds, and unknown choice labels throw response-validation errors in the typed API.
+
+## Dynamic questions
+
+For questions whose names or choices are determined at runtime:
+
+```swift
+let result = try await client.systemOne(
+    state: ["document": "I was charged twice."],
+    questions: [
+        "category": .choice(
+            instructions: "What is this ticket about?",
+            criteria: ["billing": nil, "technical": nil, "other": nil]
+        ),
+        "urgent": .noul(instructions: "Does this need urgent attention?")
+    ]
+)
+
+print(result.choices["category"]?.choice) // String?
+print(result.nouls["urgent"]?.noul)
+```
+
+`JSONValue` supports JSON literals and `JSONValue(encoding:)` for `Encodable` application models. State must be text, an object, or an array. `.raw(["type": "future", ...])` preserves extension fields and explicit nulls. `extraBody` shallowly overrides top-level fields, including `state`, `model`, and `questions`.
+
+The dynamic response provides `answers`, `nouls`, `choices`, and `scores`. Unknown answer kinds are skipped with a warning and retained in `rawHTTPResponse.body`. Score legends and probabilities use integer keys. Usage token counts are optional.
+
+## Models and response metadata
+
+```swift
+let response = try await client.models.list()
+print(response.models)
+print(response.requestID as Any)
+print(response.rawHTTPResponse?.status as Any)
+```
+
+Responses expose buffered status, headers, and body. Metadata is not included when encoding a response as JSON. Typed responses expose the original dynamic response as `response`.
+
+## Configuration and retries
+
+Explicit configuration takes precedence over `TYPESAFE_API_KEY`, `TYPESAFE_BASE_URL`, and `TYPESAFE_DEFAULT_MODEL`. Blank environment values are ignored. Defaults are `https://api.typesafe.ai`, model `jev-latest`, and a 10-second timeout per attempt.
+
+```swift
+let client = try TypeSafeClient(
+    apiKey: apiKey,
+    timeout: 10,
+    retry: RetryPolicy(maxRetries: 2, timeout: 30)
+)
+
+let models = try await client.models.list(
+    options: RequestOptions(
+        timeout: 5,
+        retry: RetryPolicy(maxRetries: 0),
+        headers: ["x-project": "demo"]
+    )
+)
+```
+
+Retries follow Python: two retries by default for connection errors, timeouts, HTTP 408/429/5xx; exponential backoff from 0.5 to 5 seconds with subtractive jitter; `retry-after-ms` and `Retry-After` support. A per-call retry policy replaces the client policy. A predicate can opt additional errors into retries.
+
+The retry budget prevents scheduling an attempt whose delay reaches or exceeds the budget; it does not cut off an attempt already running. Swift's request timeout covers the entire attempt, including the response body. Task cancellation stops requests and backoff and is never retried.
+
+SDK authentication, identification, and retry headers are protected from caller overrides. Per-call custom headers override client headers without regard to case.
+
+## Errors and logging
+
+```swift
+do {
+    _ = try await client.models.list()
+} catch TypeSafeError.api(let error) {
+    print(error.kind, error.status, error.requestID as Any)
+} catch TypeSafeError.responseValidation(_, let fieldPath) {
+    print("Invalid response at", fieldPath)
+} catch TypeSafeError.timeout(let seconds) {
+    print("Timed out after", seconds)
+}
+```
+
+`APIError.kind` distinguishes bad request, authentication, permission, not found, validation, rate limit, server, and other statuses. API errors retain the parsed JSON or plain-text body and headers. Connection failures use `TypeSafeError.connection`; cancellation uses `CancellationError`.
+
+Logging uses `swift-log`. Inject a `Logger` or set `TYPESAFE_LOG_LEVEL` to `debug`, `info`, `warning`, `error`, or `off`. Credential headers are redacted. Debug logging includes request and response bodies, which are not redacted.
+
+## Custom HTTP clients
+
+`HTTPClientTransport(client:options:maximumResponseBytes:)` accepts a copyable client conforming to Apple's `HTTPAPIs.HTTPClient` protocol, allowing custom TLS and connection-pool settings. Inject it through `TypeSafeClient(transport:)`. The adapter borrows the client; manage a scoped or owned client's lifetime outside the SDK. The default uses `DefaultHTTPClient.shared` and a 16 MiB response limit.
+
+For tests or other integrations, implement the `Sendable` `TypeSafeTransport` protocol. Custom transports must respond to task cancellation so timeout and cancellation cleanup can finish.
+
+## Development
+
+Install Swift 6.4.0 with [swiftly](https://www.swift.org/install/). The `.swift-version` file selects it.
+
+```sh
+swiftly install 6.4.0
+swiftly run swift test --disable-xctest
+swiftly run swift build --package-path Examples
+git diff --check
+```
+
+Tests use Swift Testing and Python 3 for ephemeral loopback HTTP servers. They do not need an API key. The example executable makes real API calls and requires credentials. The repository includes a pinned upstream submodule and an [upstream sync skill](.agents/skills/typesafe-upstream-sync/SKILL.md).

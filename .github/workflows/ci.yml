@@ -1,0 +1,50 @@
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-26, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: true
+      - name: Install swiftly on macOS
+        if: runner.os == 'macOS'
+        shell: bash
+        run: |
+          curl -fsSLo "$RUNNER_TEMP/swiftly.pkg" https://download.swift.org/swiftly/darwin/swiftly.pkg
+          installer -pkg "$RUNNER_TEMP/swiftly.pkg" -target CurrentUserHomeDirectory
+          "$HOME/.swiftly/bin/swiftly" init --assume-yes --skip-install --no-modify-profile
+          echo "$HOME/.swiftly/bin" >> "$GITHUB_PATH"
+      - name: Install swiftly on Linux
+        if: runner.os == 'Linux'
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y curl ca-certificates git python3 binutils unzip gnupg2 libc6-dev libgcc-13-dev libpython3-dev libstdc++-13-dev libxml2-dev libncurses-dev libz3-dev zlib1g-dev libcurl4-openssl-dev pkg-config libzstd-dev
+          curl -fsSLo "$RUNNER_TEMP/swiftly.tar.gz" "https://download.swift.org/swiftly/linux/swiftly-$(uname -m).tar.gz"
+          tar -xzf "$RUNNER_TEMP/swiftly.tar.gz" -C "$RUNNER_TEMP"
+          "$RUNNER_TEMP/swiftly" init --assume-yes --skip-install --no-modify-profile
+          echo "$HOME/.local/share/swiftly/bin" >> "$GITHUB_PATH"
+      - name: Install Swift
+        run: swiftly install 6.4.0 --assume-yes
+      - name: Verify toolchain
+        run: swiftly run swift --version
+      - name: Test
+        run: swiftly run swift test --disable-xctest
+      - name: Build examples
+        run: swiftly run swift build --package-path Examples
+      - name: Check whitespace
+        run: git diff --check
