@@ -10,11 +10,38 @@ private func withServer(_ body: (String) async throws -> Void) async throws {
     process.arguments = ["python3", "-u", URL(fileURLWithPath: #filePath).deletingLastPathComponent().appendingPathComponent("Support/server.py").path]
     process.standardOutput = pipe
     process.standardError = FileHandle.nullDevice
-    try process.run()
-    defer { process.terminate(); process.waitUntilExit() }
-    let data = pipe.fileHandleForReading.availableData
-    let port = try #require(Int(String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)))
-    try await body("http://127.0.0.1:\(port)")
+    // Process startup, pipe reads, and shutdown can block for seconds on CI.
+    // Keep them off the cooperative executor so unrelated retry budgets can advance.
+    let port = try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Int, any Error>) in
+        DispatchQueue.global().async {
+            do {
+                try process.run()
+                let data = pipe.fileHandleForReading.availableData
+                let port = try #require(Int(String(decoding: data, as: UTF8.self).trimmingCharacters(in: .whitespacesAndNewlines)))
+                continuation.resume(returning: port)
+            } catch {
+                if process.isRunning { process.terminate(); process.waitUntilExit() }
+                continuation.resume(throwing: error)
+            }
+        }
+    }
+    do {
+        try await body("http://127.0.0.1:\(port)")
+    } catch {
+        await stopServer(process)
+        throw error
+    }
+    await stopServer(process)
+}
+
+private func stopServer(_ process: Process) async {
+    await withCheckedContinuation { continuation in
+        DispatchQueue.global().async {
+            process.terminate()
+            process.waitUntilExit()
+            continuation.resume()
+        }
+    }
 }
 
 @Test(.timeLimit(.minutes(1))) func actualHTTPClientRoundTrip() async throws {
