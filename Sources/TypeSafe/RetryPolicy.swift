@@ -61,7 +61,7 @@ public struct RetryPolicy: Sendable {
            let delay = Self.retryAfter(headers: api.headers) { return delay }
         guard backoffInitial > 0, backoffMax > 0 else { return 0 }
         let capExponent = log2(backoffMax) - log2(backoffInitial)
-        let exponential = Double(attempt) >= capExponent ? backoffMax : backoffInitial * pow(2, Double(attempt))
+        let exponential = Double(attempt) >= capExponent ? backoffMax : Double(sign: .plus, exponent: attempt, significand: backoffInitial)
         let jittered = exponential * (1 - random * backoffJitter)
         // Avoid overflow while preserving Python's millisecond rounding for ordinary delays.
         let rounded = jittered < Double.greatestFiniteMagnitude / 1000 ? (jittered * 1000).rounded() / 1000 : jittered
@@ -75,7 +75,7 @@ public struct RetryPolicy: Sendable {
             guard let raw = normalized[name] else { continue }
             let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
             if let value = Double(trimmed.isEmpty ? "0" : trimmed) {
-                if value.isFinite, value >= 0, (value * multiplier).isFinite { return value * multiplier }
+                if value.isFinite, value >= 0, (value * (name == "retry-after" ? 1000 : 1)).isFinite { return value * multiplier }
                 if value.isFinite, value < 0, name == "retry-after" { return nil }
             } else if name == "retry-after" {
                 let formatter = DateFormatter()

@@ -75,7 +75,7 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
             let decode: String
             switch kind {
             case "Choice":
-                question = ".choice(instructions: \(instructions), criteria: \(criteria.map { "(\($0)) ?? TypeSafe.choiceCriteria(for: \(valueType).self)" } ?? "TypeSafe.choiceCriteria(for: \(valueType).self)"))"
+                question = ".choice(instructions: \(instructions), criteria: TypeSafe.choiceCriteria(for: \(valueType).self, descriptions: \(criteria ?? "nil")))"
                 answerType = "TypeSafe.ChoiceAnswer<\(valueType)>"
                 decode = "try response.choice(named: \(String(reflecting: name)), as: \(valueType).self)"
             case "Score":

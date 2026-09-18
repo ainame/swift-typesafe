@@ -42,6 +42,6 @@ extension TypeSafeClient {
 }
 
 /// Used by generated code to construct criteria without exposing type erasure.
-public func choiceCriteria<Label: CaseIterable & RawRepresentable>(for type: Label.Type) -> [String: JSONValue] where Label.RawValue == String {
-    Dictionary(Label.allCases.map { ($0.rawValue, JSONValue.null) }, uniquingKeysWith: { _, last in last })
+public func choiceCriteria<Label: CaseIterable & RawRepresentable>(for type: Label.Type, descriptions: [String: JSONValue]? = nil) -> [String: JSONValue] where Label.RawValue == String {
+    descriptions ?? Dictionary(Label.allCases.map { ($0.rawValue, JSONValue.null) }, uniquingKeysWith: { _, last in last })
 }

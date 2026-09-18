@@ -69,3 +69,25 @@ import TypeSafeMacros
         failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
     )
 }
+
+@Test func invalidScoreTypeDiagnostic() {
+    assertMacroExpansion(
+        """
+        @QuestionSet
+        struct Questions {
+            @Score(criteria: ["low", "high"]) var score: Int
+        }
+        """,
+        expandedSource: """
+        struct Questions {
+            @Score(criteria: ["low", "high"]) var score: Int
+        }
+
+        extension Questions: TypeSafe.QuestionSet {
+        }
+        """,
+        diagnostics: [DiagnosticSpec(message: "@Score properties must have type Double.", line: 1, column: 1)],
+        macroSpecs: ["QuestionSet": MacroSpec(type: QuestionSetMacro.self)],
+        failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+    )
+}

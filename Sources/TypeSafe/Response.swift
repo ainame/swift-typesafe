@@ -29,8 +29,20 @@ public struct ScoreAnswer: Codable, Sendable, Equatable {
         let c = try decoder.container(keyedBy: CodingKeys.self)
         score = try c.decode(Double.self, forKey: .score)
         confidence = try c.decode(Double.self, forKey: .confidence)
-        legend = try c.decode([Int: JSONValue].self, forKey: .legend)
-        probabilities = try c.decode([Int: Double].self, forKey: .probabilities)
+        let rawLegend = try c.decode([String: JSONValue].self, forKey: .legend)
+        let rawProbabilities = try c.decode([String: Double].self, forKey: .probabilities)
+        func integerKeys<T>(_ values: [String: T], key: CodingKeys) throws -> [Int: T] {
+            var result: [Int: T] = [:]
+            for (name, value) in values {
+                guard let index = Int(name) else {
+                    throw DecodingError.dataCorruptedError(forKey: key, in: c, debugDescription: "Expected integer score keys.")
+                }
+                result[index] = value
+            }
+            return result
+        }
+        legend = try integerKeys(rawLegend, key: .legend)
+        probabilities = try integerKeys(rawProbabilities, key: .probabilities)
         for (key, value) in legend where !value.isContent {
             throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath + [CodingKeys.legend, DynamicKey(String(key))], debugDescription: "Expected text, an object, or an array."))
         }
@@ -84,6 +96,7 @@ public struct RawHTTPResponse: Sendable, Equatable {
 }
 
 public struct SystemOneResponse: Codable, Sendable {
+    var ignoredAnswerTypes: [String: String] = [:]
     public let model: String
     public let usage: Usage
     public let answers: [String: Answer]
@@ -103,7 +116,11 @@ public struct SystemOneResponse: Codable, Sendable {
         for key in fields.allKeys {
             let tag = try fields.nestedContainer(keyedBy: Answer.CodingKeys.self, forKey: key)
             let type = try tag.decode(String.self, forKey: .type)
-            if ["noul", "choice", "score"].contains(type) { result[key.stringValue] = try fields.decode(Answer.self, forKey: key) }
+            if ["noul", "choice", "score"].contains(type) {
+                result[key.stringValue] = try fields.decode(Answer.self, forKey: key)
+            } else {
+                ignoredAnswerTypes[key.stringValue] = type
+            }
         }
         answers = result
     }

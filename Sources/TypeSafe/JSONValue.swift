@@ -1,6 +1,6 @@
 import Foundation
 
-/// A lossless JSON value for dynamic state, descriptions, and extension fields.
+/// A JSON value for dynamic state, descriptions, and extension fields.
 public enum JSONValue: Sendable, Equatable, Codable {
     case null, bool(Bool), integer(Int64), number(Double), string(String)
     case array([JSONValue]), object([String: JSONValue])

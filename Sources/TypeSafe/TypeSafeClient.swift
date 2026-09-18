@@ -105,6 +105,11 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
         return try await execute(method: "POST", path: "/v1/systemone", body: data, options: options) { raw, endpoint in
             var result: SystemOneResponse = try Self.decode(raw, endpoint: endpoint)
+            if !loggingDisabled {
+                for (name, type) in result.ignoredAnswerTypes {
+                    logger.warning("Ignoring answer '\(name)' with unrecognized type '\(type)'.")
+                }
+            }
             result.rawHTTPResponse = raw
             return result
         }

@@ -140,3 +140,9 @@ func retryAfterParsing(headers: [String: String], expected: Double?) { #expect(R
     #expect(RetryPolicy.retryAfter(headers: ["Retry-After": "Mon, 12 Jan 1970 13:46:50 GMT"], now: now) == 10)
     #expect(RetryPolicy.retryAfter(headers: ["Retry-After": "Mon, 12 Jan 1970 13:46:30 GMT"], now: now) == 0)
 }
+
+@Test func extremeBackoffAndRetryAfterValues() {
+    let delay = RetryPolicy(backoffInitial: Double.leastNormalMagnitude, backoffMax: 100, backoffJitter: 0).delay(attempt: 1024, error: TypeSafeError.connection("offline"))
+    #expect(delay == 4)
+    #expect(RetryPolicy.retryAfter(headers: ["Retry-After": "1e308"]) == nil)
+}
