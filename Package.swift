@@ -3,7 +3,7 @@ import PackageDescription
 import CompilerPluginSupport
 
 let package = Package(
-    name: "TypeSafe",
+    name: "swift-typesafe",
     platforms: [.macOS(.v26), .iOS(.v26), .tvOS(.v26), .watchOS(.v26), .visionOS(.v26)],
     products: [.library(name: "TypeSafe", targets: ["TypeSafe"])],
     dependencies: [

@@ -1,4 +1,4 @@
-# TypeSafe Swift SDK
+# swift-typesafe
 
 Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.6.0 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
 
@@ -6,10 +6,22 @@ Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-p
 
 ## Installation
 
-Add this package to your Swift package dependencies and the `TypeSafe` product to your target. During local development:
+Add [swift-typesafe](https://github.com/ainame/swift-typesafe) to your Swift package dependencies:
 
 ```swift
-.package(path: "/path/to/typesafe-sdk-swift")
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.6.0")
+```
+
+Add the `TypeSafe` product to your target:
+
+```swift
+.product(name: "TypeSafe", package: "swift-typesafe")
+```
+
+During local development:
+
+```swift
+.package(path: "/path/to/swift-typesafe")
 ```
 
 Releases mirror the reviewed upstream version, with tags such as `0.6.0` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
