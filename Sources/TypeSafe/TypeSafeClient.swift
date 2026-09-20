@@ -124,6 +124,11 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions(),
         responseModel: Response.Type
     ) async throws -> Response {
+        if Response.self == SystemOneResponse.self {
+            return try await systemOne(
+                state: state, questions: questions, model: model, extraBody: extraBody, options: options
+            ) as! Response
+        }
         guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
         guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
         for (name, question) in questions { try question.validate(name: name) }

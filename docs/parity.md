@@ -58,6 +58,6 @@ All automated tests use fixtures or loopback HTTP servers. They establish SDK be
 ## Verification record
 
 - Swift 6.4.0 selected through swiftly on both platforms.
-- macOS 27, arm64: 44 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.0 sync, including their parameterized cases and custom response-model coverage.
+- macOS 27, arm64: 45 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.0 sync, including their parameterized cases and custom response-model coverage.
 - The external example package compiled successfully on macOS.
 - Linux, production API calls, hosted GitHub Actions runs, and Apple mobile simulator/device testing were not performed for this sync.

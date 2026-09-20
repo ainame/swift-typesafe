@@ -95,6 +95,14 @@ private struct KnownResponse: Decodable, Sendable {
     #expect(result.answers.spam.noul == 0.98)
 }
 
+@Test func explicitDefaultResponseModelPreservesSDKMetadata() async throws {
+    let result = try await client().systemOne(
+        state: "message", questions: ["spam": .noul()], responseModel: SystemOneResponse.self
+    )
+    #expect(result.requestID == "req_123")
+    #expect(result.rawHTTPResponse?.body == Data(resultFixture.utf8))
+}
+
 @Test func customResponseModelReportsValidationPath() async throws {
     let mock = MockTransport { _, _ in response(#"{"model":"m","usage":{},"answers":{"spam":{"type":"noul"}}}"#) }
     do {

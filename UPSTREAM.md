@@ -30,6 +30,6 @@ The Swift port implements the API feature set with the deliberate Swift adaptati
 ## Verification
 
 - Swift 6.4.0 through swiftly.
-- macOS arm64: 44 runtime/API tests and 4 macro tests passed for this v0.7.0 sync, including native HTTPClient round trips, retries, timeouts, cancellation, and custom response models.
+- macOS arm64: 45 runtime/API tests and 4 macro tests passed for this v0.7.0 sync, including native HTTPClient round trips, retries, timeouts, cancellation, and custom response models.
 - The external example package compiled successfully on macOS arm64.
 - Linux, live TypeSafe API calls, hosted CI, and Apple mobile device/simulator tests were not run for this sync.
