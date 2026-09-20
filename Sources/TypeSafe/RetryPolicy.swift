@@ -1,6 +1,6 @@
 import Foundation
 
-/// Retry settings match Python 0.6.0. Per-call policies replace the client policy.
+/// Retry settings match Python 0.7.0. Per-call policies replace the client policy.
 public struct RetryPolicy: Sendable {
     public var maxRetries: Int
     public var backoffInitial: Double

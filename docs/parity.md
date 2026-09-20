@@ -1,12 +1,13 @@
-# Python 0.6.0 parity
+# Python 0.7.0 parity
 
-The primary reference is `vendor/typesafe-sdk-python` at `420ef4ffb612d5a539a1e0f0fe883ff6770340af`. JS 0.6.0 is a secondary reference, not an interchangeable behavioral specification.
+The primary reference is `vendor/typesafe-sdk-python` at `2ce5c65f13646cab6e6f782328194c9d85f3300a`. JS 0.6.0 remains a secondary reference, not an interchangeable behavioral specification; no corresponding JS 0.7.0 tag exists.
 
 ## Coverage
 
 | Upstream feature | Swift implementation | Verification |
 | --- | --- | --- |
 | POST `/v1/systemone`, GET `/v1/models` | `TypeSafeClient.systemOne`, `models.list` / `listModels` | `CoreTests`, `HTTPClientTests` |
+| Caller-defined response model | Generic `systemOne(..., responseModel:)` with `Decodable & Sendable` response type | `CoreTests` |
 | Noul, Choice, ordered Score rubrics | `Question`, `Answer`, typed payloads | `CoreTests`, `ConfigurationTests`, `MacroAPITests` |
 | Text, objects, arrays; rich descriptions; explicit null; raw extension questions | `JSONValue`, `.raw`, optional descriptions | `ConfigurationTests`, `CoreTests` |
 | At least one question and score criterion | Preflight validation; one-entry score rubrics accepted | `ConfigurationTests`, `CoreTests` |
@@ -32,6 +33,7 @@ The native adapter tests exercise Apple's default URLSession-backed client on ma
 ## Deliberate Swift adaptations
 
 - The client is async-only. Swift task cancellation replaces Python task cancellation and JS abort signals. Synchronous wrappers, Python pickling, and cached-object identity are language/runtime details rather than ported APIs.
+- Python 0.7.0 replaces `msgspec` with Pydantic. Swift continues to use Foundation Codable, which already provides its equivalent wire serialization and typed response decoding. Python's `response_model` accepts a Pydantic type; Swift's `responseModel:` accepts a `Decodable & Sendable` type. Custom Swift models do not receive SDK-only raw-response metadata, matching the distinction between custom and standard upstream responses.
 - `QuestionSet` creates a concrete answer struct. Missing answers, incorrect kinds, or choice labels outside the declared enum are errors. The dynamic API retains Python's lenient unknown-answer behavior.
 - Swift's timeout is a deadline for the whole HTTP attempt, including body consumption. Python/httpx has separate connect/read/write/pool inactivity timeouts and permits disabling them. Those httpx-specific options are not exposed by Apple's default client. Inject a configured HTTPClient for available backend-specific controls; SDK request deadlines remain positive finite values.
 - The default transport uses `DefaultHTTPClient.shared`. Injected HTTP clients remain caller-owned and are not closed by the SDK. Use the HTTP implementation's scoped lifetime or shutdown API outside the SDK. There is no redundant SDK `close` method for borrowed resources.
@@ -53,10 +55,9 @@ The native adapter tests exercise Apple's default URLSession-backed client on ma
 
 All automated tests use fixtures or loopback HTTP servers. They establish SDK behavior without spending TypeSafe credits. The example compiles but is not executed against the production API without credentials. Hosted CI and Apple mobile simulator/device runs are distinct from local macOS and Linux verification; do not describe them as completed unless their results have been checked.
 
-## Initial verification record
+## Verification record
 
 - Swift 6.4.0 selected through swiftly on both platforms.
-- macOS 27, arm64: 41 runtime/API tests and 4 macro expansion/diagnostic tests passed, including their parameterized cases.
-- Ubuntu 24.04, arm64: the same 45 tests passed in an isolated container. Source was mounted read-only and copied into a separate build directory.
-- External example package compiled successfully on both macOS and Linux.
-- Production API calls, hosted GitHub Actions runs, and Apple mobile simulator/device testing were not performed for this local initial release.
+- macOS 27, arm64: 44 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.0 sync, including their parameterized cases and custom response-model coverage.
+- The external example package compiled successfully on macOS.
+- Linux, production API calls, hosted GitHub Actions runs, and Apple mobile simulator/device testing were not performed for this sync.

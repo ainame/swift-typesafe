@@ -1,6 +1,6 @@
 # swift-typesafe
 
-Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.6.0 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
+Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.0 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
 
 Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-proposal) package, pinned to 0.2.1. The proposal may change; its Swift 6.4 and OS requirements apply to this SDK.
 
@@ -9,7 +9,7 @@ Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-p
 Add [swift-typesafe](https://github.com/ainame/swift-typesafe) to your Swift package dependencies:
 
 ```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.6.0")
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.0")
 ```
 
 Add the `TypeSafe` product to your target:
@@ -24,7 +24,7 @@ During local development:
 .package(path: "/path/to/swift-typesafe")
 ```
 
-Releases mirror the reviewed upstream version, with tags such as `0.6.0` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
+Releases mirror the reviewed upstream version, with tags such as `0.7.0` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
 
 ## Typed questions
 
@@ -98,6 +98,21 @@ print(response.rawHTTPResponse?.status as Any)
 ```
 
 Responses expose buffered status, headers, and body. Metadata is not included when encoding a response as JSON. Typed responses expose the original dynamic response as `response`.
+
+If your application has a response schema, pass it as `responseModel:`. It is decoded from the same successful response; standard API errors and validation paths remain available through `TypeSafeError`.
+
+```swift
+struct SpamResponse: Decodable, Sendable {
+    struct Answers: Decodable, Sendable { let spam: NoulAnswer }
+    let model: String
+    let answers: Answers
+}
+
+let typed = try await client.systemOne(
+    state: "Buy now!", questions: ["spam": .noul()], responseModel: SpamResponse.self
+)
+print(typed.answers.spam.noul)
+```
 
 ## Configuration and retries
 
