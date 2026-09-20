@@ -12,7 +12,7 @@ public struct RequestOptions: Sendable {
 
 /// Concurrent, async-only TypeSafe client. Configuration is immutable and retry state is per call.
 public struct TypeSafeClient: Sendable, CustomStringConvertible {
-    public static let version = "0.6.0"
+    public static let version = "0.7.0"
     public static let defaultBaseURL = "https://api.typesafe.ai"
     public static let defaultModel = "jev-latest"
     public static let defaultTimeout = 10.0
@@ -112,6 +112,36 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
             }
             result.rawHTTPResponse = raw
             return result
+        }
+    }
+
+    /// Decodes a System One response into a caller-defined Decodable model.
+    ///
+    /// Use this when the response schema is known to your application. The default overload returns
+    /// `SystemOneResponse`, which additionally exposes validated dynamic answers and HTTP metadata.
+    public func systemOne<Response: Decodable & Sendable>(
+        state: JSONValue, questions: [String: Question], model: String? = nil,
+        extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions(),
+        responseModel: Response.Type
+    ) async throws -> Response {
+        if Response.self == SystemOneResponse.self {
+            return try await systemOne(
+                state: state, questions: questions, model: model, extraBody: extraBody, options: options
+            ) as! Response
+        }
+        guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
+        guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
+        for (name, question) in questions { try question.validate(name: name) }
+        var body: [String: JSONValue] = [
+            "state": state, "model": .string(model ?? self.model),
+            "questions": .object(questions.mapValues { .object($0.payload) }),
+        ]
+        body.merge(extraBody, uniquingKeysWith: { _, last in last })
+        let data: Data
+        do { data = try JSONEncoder().encode(body) }
+        catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
+        return try await execute(method: "POST", path: "/v1/systemone", body: data, options: options) { raw, endpoint in
+            try Self.decode(raw, endpoint: endpoint)
         }
     }
 

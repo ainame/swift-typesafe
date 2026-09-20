@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 — 2026-09-20
+
+Sync with TypeSafe AI Python SDK 0.7.0.
+
+- Add `systemOne(..., responseModel:)` for caller-defined `Decodable & Sendable` response models while preserving typed API errors and validation paths.
+- Advance the reviewed Python SDK submodule to `v0.7.0` (`2ce5c65f13646cab6e6f782328194c9d85f3300a`).
+- Document the Pydantic-to-Codable adaptation and test custom response decoding, validation, and API-error behavior.
+
 ## 0.6.0 — 2026-09-18
 
 Initial Swift port of TypeSafe AI's Python SDK 0.6.0, with the JS SDK reviewed as a secondary reference.
