@@ -2,11 +2,14 @@
 
 ## 0.7.0 — 2026-09-20
 
-Sync with TypeSafe AI Python SDK 0.7.0.
+### Added
 
-- Add `systemOne(..., responseModel:)` for caller-defined `Decodable & Sendable` response models while preserving typed API errors and validation paths.
-- Advance the reviewed Python SDK submodule to `v0.7.0` (`2ce5c65f13646cab6e6f782328194c9d85f3300a`).
-- Document the Pydantic-to-Codable adaptation and test custom response decoding, validation, and API-error behavior.
+- Add `systemOne(..., responseModel:)` for caller-defined `Decodable & Sendable` response models, preserving validation paths and HTTP metadata for an explicit `SystemOneResponse` model. [#1](https://github.com/ainame/swift-typesafe/pull/1)
+
+### Changed
+
+- Sync the reviewed Python SDK submodule to `v0.7.0` (`2ce5c65f13646cab6e6f782328194c9d85f3300a`) and document the Pydantic-to-Codable adaptation. [#1](https://github.com/ainame/swift-typesafe/pull/1)
+- Update the repository-local upstream-sync skill to use host-network `gh` for GitHub release and PR operations. [#1](https://github.com/ainame/swift-typesafe/pull/1)
 
 ## 0.6.0 — 2026-09-18
 
