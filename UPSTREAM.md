@@ -8,7 +8,7 @@
 - HTTP dependency: `apple/swift-http-api-proposal` 0.2.1, exact version.
 - Swift: 6.4.0 via swiftly; SwiftSyntax 604.0.0.
 
-Python's request/response behavior, configuration, retries, errors, and logging are the parity target. Python synchronous wrappers and Python-specific serialization/runtime mechanisms are not Swift APIs. The macro API is a Swift addition over the same dynamic implementation.
+Python's request/response behavior, configuration, retries, errors, and logging are the parity target. Python synchronous wrappers and Python-specific serialization/runtime mechanisms are not Swift APIs. The macro and ad-hoc result-builder APIs are Swift additions over the same dynamic implementation.
 
 ## Sync procedure
 
@@ -25,7 +25,7 @@ Reviewed Python source: `_core/client/aio`, `_core/endpoints.py`, `_core/config.
 
 Reviewed JS source: `src/client.ts`, `types.ts`, `questions.ts`, `retry.ts`, `api-promise.ts`, and reliability/release regression tests.
 
-The Swift port implements the API feature set with the deliberate Swift adaptations enumerated in [docs/parity.md](docs/parity.md). Runtime state and payload handling follow Python; macro-based static typing is an additional Swift layer. Wire models are handwritten and reviewed against upstream generated models and runtime corrections (including optional usage fields). Python 0.7.0's Pydantic-specific serialization migration is represented in Swift by Codable; its custom response-model feature is available through `responseModel:`.
+The Swift port implements the API feature set with the deliberate Swift adaptations enumerated in [docs/parity.md](docs/parity.md). Runtime state and payload handling follow Python; macro-based schemas and result-builder answer tuples are additional Swift layers. Wire models are handwritten and reviewed against upstream generated models and runtime corrections (including optional usage fields). Python 0.7.0's Pydantic-specific serialization migration is represented in Swift by Codable; its custom response-model feature is available through `responseModel:`.
 
 ## Verification
 
