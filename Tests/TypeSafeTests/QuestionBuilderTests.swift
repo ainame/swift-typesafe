@@ -13,7 +13,7 @@ private let builderFixture = resultFixture
         Choice<Tone>("Tone?")
         Noul("Spam?")
         Score("Quality?", criteria: ["bad", "ok", "great"])
-    }
+    }.answers
     let _: ChoiceAnswer<Tone> = tone
     let _: NoulAnswer = spam
     let _: ScoreAnswer = quality
@@ -36,13 +36,13 @@ private let builderFixture = resultFixture
 @Test func builderSingleAnswerAndRepeatedQuestionTypes() async throws {
     let json = #"{"model":"m","usage":{},"answers":{"question_0":{"type":"noul","noul":0.2},"question_1":{"type":"noul","noul":0.8}}}"#
     let mock = MockTransport { _, _ in response(json) }
-    let single = try await client(mock).systemOne(state: "s") { Noul() }
+    let single = try await client(mock).systemOne(state: "s") { Noul() }.answers
     let _: NoulAnswer = single
     #expect(single.noul == 0.2)
     let (first, second) = try await client(mock).systemOne(state: "s") {
         Noul("First?")
         Noul("Second?")
-    }
+    }.answers
     #expect(first.noul == 0.2)
     #expect(second.noul == 0.8)
 }
@@ -61,8 +61,8 @@ private func localQuestions() -> Questions<(ChoiceAnswer<Tone>, NoulAnswer, Scor
         Choice<Tone>()
         Noul()
         Score(criteria: ["bad", "ok", "great"])
-    }
-    let reused = try await c.systemOne(state: "s", questions: localQuestions)
+    }.answers
+    let reused = try await c.systemOne(state: "s", questions: localQuestions).answers
     #expect(reused.0 == tone)
     #expect(reused.1 == spam)
     #expect(reused.2 == quality)
@@ -75,7 +75,7 @@ private func localQuestions() -> Questions<(ChoiceAnswer<Tone>, NoulAnswer, Scor
     let values = try await client(mock).systemOne(state: "s") {
         Noul(); Noul(); Noul(); Noul(); Noul(); Noul()
         Noul(); Noul(); Noul(); Noul(); Noul(); Noul()
-    }
+    }.answers
     #expect(values.0.noul == 0)
     #expect(values.9.noul == 9.0 / 12)
     #expect(values.10.noul == 10.0 / 12)
@@ -191,7 +191,9 @@ func builderValidatesEveryAnswer(name: String) async throws {
     let result = try await client(mock).systemOne(
         state: "s", options: .init(retry: RetryPolicy(maxRetries: 1, backoffInitial: 0, backoffMax: 0))
     ) { Choice<Tone>() }
-    #expect(result.choice == .friendly)
+    #expect(result.answers.choice == .friendly)
+    #expect(result.requestID == "req_123")
+    #expect(result.rawHTTPResponse == response(builderFixture))
     #expect(await mock.requests.count == 2)
     #expect(await mock.requests.last?.headers["x-typesafe-retry-count"] == "1")
     let failing = MockTransport { _, _ in response("bad request", status: 400) }
@@ -220,7 +222,7 @@ private final class LocalInstructions {
         let instructions = prompt()
         Choice<Tone>(instructions)
     }
-    #expect(answer.choice == .friendly)
+    #expect(answer.answers.choice == .friendly)
     #expect(instructions.value == "Tone?")
     #expect(evaluations == 1)
 }
@@ -248,6 +250,41 @@ private struct SpamProbability: TypedQuestion {
 @Test func builderSupportsCustomTypedQuestions() async throws {
     let json = #"{"model":"m","usage":{},"answers":{"question_0":{"type":"noul","noul":0.75}}}"#
     let mock = MockTransport { _, _ in response(json) }
-    let probability: Double = try await client(mock).systemOne(state: "s") { SpamProbability() }
+    let probability: Double = try await client(mock).systemOne(state: "s") { SpamProbability() }.answers
     #expect(probability == 0.75)
+}
+
+@Test func builderPreservesResponseMetadataAndDynamicAnswers() async throws {
+    let raw = response(builderFixture, headers: ["X-TypeSafe-Request-ID": "builder-request", "x-custom": "value"])
+    let mock = MockTransport { _, _ in raw }
+    let result: TypedSystemOneResponse<(ChoiceAnswer<Tone>, NoulAnswer, ScoreAnswer)> =
+        try await client(mock).systemOne(state: "s", questions: localQuestions)
+    let (tone, spam, quality) = result.answers
+    #expect(tone.choice == .friendly)
+    #expect(spam.noul == 0.98)
+    #expect(quality.score == 1.7)
+    #expect(result.model == "jev-latest")
+    #expect(result.usage.inputTokens == 12)
+    #expect(result.usage.outputTokens == 3)
+    #expect(result.requestID == "builder-request")
+    #expect(result.rawHTTPResponse == raw)
+    #expect(result.response.rawHTTPResponse == raw)
+    #expect(result.response.choices["question_0"]?.choice == tone.choice.rawValue)
+    #expect(result.response.nouls["question_1"] == spam)
+    #expect(result.response.scores["question_2"] == quality)
+    #expect(await mock.requests.count == 1)
+}
+
+@Test func builderSingleAnswerPreservesOptionalMetadata() async throws {
+    let json = #"{"model":"m","usage":{},"answers":{"question_0":{"type":"noul","noul":0.75}}}"#
+    let raw = response(json, headers: [:])
+    let mock = MockTransport { _, _ in raw }
+    let result: TypedSystemOneResponse<NoulAnswer> = try await client(mock).systemOne(state: "s") { Noul() }
+    #expect(result.answers.noul == 0.75)
+    #expect(result.model == "m")
+    #expect(result.usage.inputTokens == nil)
+    #expect(result.usage.outputTokens == nil)
+    #expect(result.requestID == nil)
+    #expect(result.rawHTTPResponse == raw)
+    #expect(result.response.nouls["question_0"] == result.answers)
 }

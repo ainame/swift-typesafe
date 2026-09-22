@@ -80,20 +80,22 @@ public enum QuestionBuilder {
 }
 
 extension TypeSafeClient {
-    /// Returns typed answers in declaration order, or a single answer for one question.
+    /// Returns typed answers and response metadata, matching the schema overload.
+    ///
+    /// `answers` contains a flat tuple in declaration order, or a single answer for one question.
     ///
     /// Wire keys are `question_0`, `question_1`, and so on. Empty builders throw a
-    /// configuration error before sending a request. Use the schema or dynamic overload
-    /// when response metadata or runtime-sized question collections are needed.
+    /// configuration error before sending a request. Use the dynamic overload
+    /// when runtime-sized question collections are needed.
     public nonisolated(nonsending) func systemOne<Answers: Sendable>(
         state: JSONValue, model: String? = nil,
         extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions(),
         @QuestionBuilder questions: () throws -> Questions<Answers>
-    ) async throws -> Answers {
+    ) async throws -> TypedSystemOneResponse<Answers> {
         let questions = try questions()
         let response = try await systemOne(
             state: state, questions: questions.questions, model: model, extraBody: extraBody, options: options
         )
-        return try questions.decodeAnswers(response)
+        return TypedSystemOneResponse(answers: try questions.decodeAnswers(response), response: response)
     }
 }
