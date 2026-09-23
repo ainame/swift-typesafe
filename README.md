@@ -185,6 +185,23 @@ With `traits: []`, neither backend is compiled. Inject a transport or client (se
 
 `HTTPClientTransport(client:options:maximumResponseBytes:)` accepts a copyable client conforming to Apple's `HTTPAPIs.HTTPClient` protocol, allowing custom TLS and connection-pool settings. Inject it through `TypeSafeClient(transport:)`. The adapter borrows the client; manage a scoped or owned client's lifetime outside the SDK. The default uses the shared client of the backend selected by [the HTTP backend traits](#http-backend-traits) and a 16 MiB response limit.
 
+For example, a server that already owns an `AsyncHTTPClient.HTTPClient` can share that instance with TypeSafe:
+
+```swift
+import AHCHTTPClient // Adds HTTPAPIs.HTTPClient conformance to AsyncHTTPClient.HTTPClient.
+import AsyncHTTPClient
+import TypeSafe
+
+func makeTypeSafeClient(httpClient: AsyncHTTPClient.HTTPClient, apiKey: String) throws -> TypeSafeClient {
+    try TypeSafeClient(
+        apiKey: apiKey,
+        transport: HTTPClientTransport(client: httpClient)
+    )
+}
+```
+
+Enable the `AsyncHTTPClient` package trait and pass the server's existing client to this function. Keep that client alive while TypeSafe requests are in flight; the server remains responsible for its shutdown. The trait selects the default backend, while `transport:` selects the actual client instance used here.
+
 For tests or other integrations, implement the `Sendable` `TypeSafeTransport` protocol. Custom transports must respond to task cancellation so timeout and cancellation cleanup can finish.
 
 ## Versioning
