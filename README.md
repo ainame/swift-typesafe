@@ -18,7 +18,11 @@ Add the `TypeSafe` product to your target:
 .product(name: "TypeSafe", package: "swift-typesafe")
 ```
 
-## Typed reusable questions
+## Usage
+
+Choose a question style based on how your application defines questions: a reusable typed schema, typed questions at the call site, or runtime-defined questions. All three use the same client and request handling.
+
+### Typed reusable questions
 
 Set `TYPESAFE_API_KEY`, or pass `apiKey` explicitly:
 
@@ -56,7 +60,7 @@ print(result.answers.severity.score)  // Expected score; may be fractional
 
 Use `criteria:` on `@Choice` to supply descriptions keyed by the enum's raw strings, or on `@Noul` with `"true"` and `"false"` keys. Instructions and descriptions accept text, JSON objects, or arrays. Missing answers, wrong answer kinds, and unknown choice labels throw response-validation errors in the typed API.
 
-## Typed ad-hoc questions
+### Typed ad-hoc questions
 
 For local judgments, use a result-builder closure instead of declaring a schema:
 
@@ -101,7 +105,7 @@ The closure runs once on the caller's actor and may throw when constructing ques
 
 Wire keys are positional (`question_0`, `question_1`, ...), including in response-validation error paths. An empty builder throws before any request is sent. The builder supports a fixed sequence of expressions and local declarations, not `if`/`switch` blocks or runtime-sized loops; use the dynamic API for runtime-varying collections.
 
-## Dynamic questions
+### Dynamic questions
 
 For questions whose names or choices are determined at runtime:
 
@@ -125,7 +129,7 @@ print(result.nouls["urgent"]?.noul)
 
 The dynamic response provides `answers`, `nouls`, `choices`, and `scores`. Unknown answer kinds are skipped with a warning and retained in `rawHTTPResponse.body`. Score legends and probabilities use integer keys. Usage token counts are optional.
 
-## Models and response metadata
+### Models and response metadata
 
 ```swift
 let response = try await client.models.list()
