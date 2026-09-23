@@ -3,7 +3,7 @@
 The release versions follow [Python SDK upstream releases](https://github.com/typesafe-ai/typesafe-sdk-python).
 So each release may include improvements, bug fixes, or breaking changes (if needed) in Swift SDK side.
 
-## 0.7.1 — unreleased
+## 0.7.1 - 2026-09-23
 
 ### Added
 
