@@ -12,7 +12,8 @@ So each release may include improvements, bug fixes, or breaking changes (if nee
 
 ### Fixed
 
-- Trim and validate API keys during client initialization, and redact credentials from transport connection errors.
+- Trim and validate API keys during client initialization. Swift 0.7.0 shared the upstream validation gap and could pass malformed keys to the HTTP transport.
+- Redact credentials from transport connection error messages. Swift 0.7.0 included raw transport error text, so a transport that echoed a credential could expose it in a `TypeSafeError.connection` message. Python also exposed the original error through its exception chain; Swift did not retain that chain.
 
 ### Changed
 
