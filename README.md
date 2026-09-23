@@ -9,7 +9,7 @@ Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-p
 Add [swift-typesafe](https://github.com/ainame/swift-typesafe) to your Swift package dependencies:
 
 ```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.1")
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.2")
 ```
 
 Add the `TypeSafe` product to your target:
@@ -17,40 +17,6 @@ Add the `TypeSafe` product to your target:
 ```swift
 .product(name: "TypeSafe", package: "swift-typesafe")
 ```
-
-### HTTP backend traits
-
-The default transport is backed by one HTTP implementation from Apple's proposal, selected with package traits so the other is not compiled:
-
-| Trait | Backend |
-| --- | --- |
-| `URLSession` (default) | `URLSessionHTTPClient` on Apple platforms. Linux uses AsyncHTTPClient because URLSession backing is Darwin-only. |
-| `AsyncHTTPClient` | AsyncHTTPClient (SwiftNIO) on every platform. Takes precedence over `URLSession` when both are enabled. |
-
-To use AsyncHTTPClient instead:
-
-```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.2", traits: ["AsyncHTTPClient"])
-```
-
-With `traits: []`, neither backend is compiled. Inject a transport or client (see [Custom HTTP clients](#custom-http-clients)); the default transport throws `TypeSafeError.configuration`.
-
-During local development:
-
-```swift
-.package(path: "/path/to/swift-typesafe")
-```
-
-### Versioning
-
-Releases use [Semantic Versioning](https://semver.org) tags without a `v` prefix, such as `0.7.1`.
-
-- **MAJOR.MINOR follows the Python SDK.** Swift `0.7.x` implements the Python SDK 0.7 API. A new upstream minor or major release becomes the next Swift MAJOR.MINOR, starting at patch 0 (for example, Python 0.8.0 becomes Swift 0.8.0).
-- **PATCH is owned by this package.** Patch releases carry Swift-side fixes and improvements and upstream patch fixes that affect Swift. Python-specific upstream patches may be skipped. **A Swift patch number does not have to match the Python patch number.** For example, Swift 0.7.2 still implements Python 0.7.1.
-- Each [CHANGELOG](CHANGELOG.md) entry names the Python release it implements. [UPSTREAM.md](UPSTREAM.md) keeps the full mapping and exact upstream commits. [The parity record](docs/parity.md) lists verified behavior and Swift adaptations.
-- `TypeSafeClient.version`, sent in the `user-agent` and `x-typesafe-sdk` headers, reports the implemented Python SDK version, not this package's tag.
-
-`from: "0.7.1"` resolves new patch and minor releases below 1.0.0. While the SDK is 0.x, a new MINOR can contain breaking changes, following upstream. To stay on one Python API generation, use `.upToNextMinor(from: "0.7.1")`.
 
 ## Typed reusable questions
 
@@ -229,13 +195,47 @@ do {
 
 Logging uses `swift-log`. Inject a `Logger` or set `TYPESAFE_LOG_LEVEL` to `debug`, `info`, `warning`, `error`, or `off`. Credential headers are redacted. Debug logging includes request and response bodies, which are not redacted.
 
+## HTTP backend traits
+
+The default transport is backed by one HTTP implementation from Apple's proposal, selected with package traits so the other is not compiled:
+
+| Trait | Backend |
+| --- | --- |
+| `URLSession` (default) | `URLSessionHTTPClient` on Apple platforms. Linux uses AsyncHTTPClient because URLSession backing is Darwin-only. |
+| `AsyncHTTPClient` | AsyncHTTPClient (SwiftNIO) on every platform. Takes precedence over `URLSession` when both are enabled. |
+
+To use AsyncHTTPClient instead:
+
+```swift
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.2", traits: ["AsyncHTTPClient"])
+```
+
+With `traits: []`, neither backend is compiled. Inject a transport or client (see [Custom HTTP clients](#custom-http-clients)); the default transport throws `TypeSafeError.configuration`.
+
 ## Custom HTTP clients
 
 `HTTPClientTransport(client:options:maximumResponseBytes:)` accepts a copyable client conforming to Apple's `HTTPAPIs.HTTPClient` protocol, allowing custom TLS and connection-pool settings. Inject it through `TypeSafeClient(transport:)`. The adapter borrows the client; manage a scoped or owned client's lifetime outside the SDK. The default uses the shared client of the backend selected by [the HTTP backend traits](#http-backend-traits) and a 16 MiB response limit.
 
 For tests or other integrations, implement the `Sendable` `TypeSafeTransport` protocol. Custom transports must respond to task cancellation so timeout and cancellation cleanup can finish.
 
+## Versioning
+
+Releases use [Semantic Versioning](https://semver.org) tags without a `v` prefix, such as `0.7.2`.
+
+- **MAJOR.MINOR follows the Python SDK.** Swift `0.7.x` implements the Python SDK 0.7 API. A new upstream minor or major release becomes the next Swift MAJOR.MINOR, starting at patch 0 (for example, Python 0.8.0 becomes Swift 0.8.0).
+- **PATCH is owned by this package.** Patch releases carry Swift-side fixes and improvements and upstream patch fixes that affect Swift. Python-specific upstream patches may be skipped. **A Swift patch number does not have to match the Python patch number.** For example, Swift 0.7.2 still implements Python 0.7.1.
+- Each [CHANGELOG](CHANGELOG.md) entry names the Python release it implements. [UPSTREAM.md](UPSTREAM.md) keeps the full mapping and exact upstream commits. [The parity record](docs/parity.md) lists verified behavior and Swift adaptations.
+- `TypeSafeClient.version`, sent in the `user-agent` and `x-typesafe-sdk` headers, reports the implemented Python SDK version, not this package's tag.
+
+`from: "0.7.2"` resolves new patch and minor releases below 1.0.0. While the SDK is 0.x, a new MINOR can contain breaking changes, following upstream. To stay on one Python API generation, use `.upToNextMinor(from: "0.7.2")`.
+
 ## Development
+
+During local development:
+
+```swift
+.package(path: "/path/to/swift-typesafe")
+```
 
 Install Swift 6.4.0 with [swiftly](https://www.swift.org/install/). The `.swift-version` file selects it.
 
