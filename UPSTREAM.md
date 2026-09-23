@@ -14,7 +14,7 @@ MAJOR.MINOR follows the Python SDK release; PATCH belongs to this package (see [
 
 | Swift release | Python SDK | Notes |
 | --- | --- | --- |
-| Unreleased (planned 0.7.2) | 0.7.1 | Swift-only: HTTP backend package traits |
+| 0.7.2 | 0.7.1 | Swift-only: HTTP backend package traits and package-owned patch numbering |
 | 0.7.1 | 0.7.1 | Upstream sync |
 | 0.7.0 | 0.7.0 | Upstream sync |
 | 0.6.0 | 0.6.0 | Initial port |

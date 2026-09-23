@@ -3,17 +3,17 @@
 Versions follow [Semantic Versioning](https://semver.org). MAJOR.MINOR follows the [Python SDK](https://github.com/typesafe-ai/typesafe-sdk-python) release it implements. PATCH is owned by this package, so it can differ from the Python patch number. See [Versioning](README.md#versioning).
 Each entry names the Python release it implements. Upstream minor releases can include breaking changes while the SDK is 0.x.
 
-## Unreleased
+## 0.7.2 - 2026-09-23
 
-Implements Python SDK 0.7.1. This will be the first Swift-only patch release, planned as 0.7.2.
+Implements Python SDK 0.7.1. This is a Swift-only patch release.
 
 ### Changed
 
-- Adopt the versioning policy described in [Versioning](README.md#versioning): MAJOR.MINOR follows the Python SDK; PATCH is owned by this package. Existing tags are unchanged; 0.6.0, 0.7.0, and 0.7.1 each match the same Python version.
+- Adopt the versioning policy described in [Versioning](README.md#versioning): MAJOR.MINOR follows the Python SDK; PATCH is owned by this package. Existing tags are unchanged; 0.6.0, 0.7.0, and 0.7.1 each match the same Python version. [#4](https://github.com/ainame/swift-typesafe/pull/4)
 
 ### Added
 
-- Add `URLSession` (default) and `AsyncHTTPClient` package traits that select the default transport's HTTP backend. Only the selected backend is compiled, rather than both through the proposal's `HTTPClient` product. Linux uses AsyncHTTPClient under the default trait.
+- Add `URLSession` (default) and `AsyncHTTPClient` package traits that select the default transport's HTTP backend. Only the selected backend is compiled, rather than both through the proposal's `HTTPClient` product. Linux uses AsyncHTTPClient under the default trait. [#4](https://github.com/ainame/swift-typesafe/pull/4)
 
 ## 0.7.1 - 2026-09-23
 
