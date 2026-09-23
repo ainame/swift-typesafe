@@ -12,7 +12,7 @@ public struct RequestOptions: Sendable {
 
 /// Concurrent, async-only TypeSafe client. Configuration is immutable and retry state is per call.
 public struct TypeSafeClient: Sendable, CustomStringConvertible {
-    public static let version = "0.7.0"
+    public static let version = "0.7.1"
     public static let defaultBaseURL = "https://api.typesafe.ai"
     public static let defaultModel = "jev-latest"
     public static let defaultTimeout = 10.0
@@ -39,8 +39,13 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
             let env = environment[variable]?.trimmingCharacters(in: .whitespacesAndNewlines)
             return env.flatMap { $0.isEmpty ? nil : $0 } ?? fallback
         }
-        guard let key = resolve(apiKey, "TYPESAFE_API_KEY") else {
+        guard let suppliedKey = resolve(apiKey, "TYPESAFE_API_KEY"),
+              !suppliedKey.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw TypeSafeError.configuration("No API key provided. Pass apiKey or set TYPESAFE_API_KEY.")
+        }
+        let key = suppliedKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard key.unicodeScalars.allSatisfy({ $0.value >= 33 && $0.value <= 126 }) else {
+            throw TypeSafeError.configuration("API key must contain only printable ASCII characters without whitespace.")
         }
         try validateTimeout(timeout)
         try retry.validate()
@@ -211,7 +216,7 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         } catch is CancellationError { throw CancellationError() }
         catch let error as TypeSafeError { throw error }
         catch let error as URLError where error.code == .timedOut { throw TypeSafeError.timeout(seconds: request.timeout) }
-        catch { throw TypeSafeError.connection("Connection error: \(error)") }
+        catch { throw TypeSafeError.connection("Connection error: \(redact(String(describing: error), headers: request.headers))") }
     }
 
     private static func decode<T: Decodable>(_ raw: RawHTTPResponse, endpoint: String) throws -> T {
@@ -234,6 +239,29 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
     static func isSecret(_ name: String) -> Bool {
         let name = name.lowercased()
         return ["authorization", "proxy-authorization", "x-api-key", "api-key", "cookie", "set-cookie"].contains(name) || name.contains("token") || name.contains("secret")
+    }
+
+    private func redact(_ message: String, headers: [String: String]) -> String {
+        var credentials = Set<String>()
+        for (name, value) in headers where Self.isSecret(name) && !value.isEmpty {
+            credentials.insert(value)
+            if name.lowercased() == "authorization" || name.lowercased() == "proxy-authorization" {
+                let parts = value.split(maxSplits: 1, whereSeparator: { $0.isWhitespace })
+                if parts.count == 2 { credentials.insert(String(parts[1])) }
+            }
+        }
+        var variants = credentials
+        for credential in credentials {
+            if let data = try? JSONEncoder().encode(credential),
+               let json = String(data: data, encoding: .utf8), json.count >= 2 {
+                variants.insert(String(json.dropFirst().dropLast()))
+            }
+        }
+        var safe = message
+        for variant in variants.sorted(by: { $0.count > $1.count }) where !variant.isEmpty {
+            safe = safe.replacingOccurrences(of: variant, with: "***")
+        }
+        return safe
     }
 
     private static var platform: String {
