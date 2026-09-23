@@ -1,9 +1,15 @@
 # Changelog
 
-The release versions follow [Python SDK upstream releases](https://github.com/typesafe-ai/typesafe-sdk-python).
-So each release may include improvements, bug fixes, or breaking changes (if needed) in Swift SDK side.
+Versions follow [Semantic Versioning](https://semver.org). MAJOR.MINOR follows the [Python SDK](https://github.com/typesafe-ai/typesafe-sdk-python) release it implements. PATCH is owned by this package, so it can differ from the Python patch number. See [Versioning](README.md#versioning).
+Each entry names the Python release it implements. Upstream minor releases can include breaking changes while the SDK is 0.x.
 
 ## Unreleased
+
+Implements Python SDK 0.7.1. This will be the first Swift-only patch release, planned as 0.7.2.
+
+### Changed
+
+- Adopt the versioning policy described in [Versioning](README.md#versioning): MAJOR.MINOR follows the Python SDK; PATCH is owned by this package. Existing tags are unchanged; 0.6.0, 0.7.0, and 0.7.1 each match the same Python version.
 
 ### Added
 

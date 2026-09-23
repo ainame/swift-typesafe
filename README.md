@@ -43,7 +43,16 @@ During local development:
 .package(path: "/path/to/swift-typesafe")
 ```
 
-Releases mirror the reviewed upstream version, with tags such as `0.7.1` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
+### Versioning
+
+Releases use [Semantic Versioning](https://semver.org) tags without a `v` prefix, such as `0.7.1`.
+
+- **MAJOR.MINOR follows the Python SDK.** Swift `0.7.x` implements the Python SDK 0.7 API. A new upstream minor or major release becomes the next Swift MAJOR.MINOR, starting at patch 0 (for example, Python 0.8.0 becomes Swift 0.8.0).
+- **PATCH is owned by this package.** Patch releases carry Swift-side fixes and improvements and upstream patch fixes that affect Swift. Python-specific upstream patches may be skipped. **A Swift patch number does not have to match the Python patch number.** For example, Swift 0.7.2 still implements Python 0.7.1.
+- Each [CHANGELOG](CHANGELOG.md) entry names the Python release it implements. [UPSTREAM.md](UPSTREAM.md) keeps the full mapping and exact upstream commits. [The parity record](docs/parity.md) lists verified behavior and Swift adaptations.
+- `TypeSafeClient.version`, sent in the `user-agent` and `x-typesafe-sdk` headers, reports the implemented Python SDK version, not this package's tag.
+
+`from: "0.7.1"` resolves new patch and minor releases below 1.0.0. While the SDK is 0.x, a new MINOR can contain breaking changes, following upstream. To stay on one Python API generation, use `.upToNextMinor(from: "0.7.1")`.
 
 ## Typed reusable questions
 
