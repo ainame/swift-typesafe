@@ -44,6 +44,9 @@ jobs:
         run: swiftly run swift --version
       - name: Test
         run: swiftly run swift test --disable-xctest
+      - name: Test with AsyncHTTPClient trait
+        if: runner.os == 'macOS'
+        run: swiftly run swift test --disable-xctest --traits AsyncHTTPClient
       - name: Build examples
         run: swiftly run swift build --package-path Examples
       - name: Check whitespace

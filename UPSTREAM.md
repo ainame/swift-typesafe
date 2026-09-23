@@ -8,6 +8,17 @@
 - HTTP dependency: `apple/swift-http-api-proposal` 0.2.1, exact version.
 - Swift: 6.4.0 via swiftly; SwiftSyntax 604.0.0.
 
+## Release mapping
+
+MAJOR.MINOR follows the Python SDK release; PATCH belongs to this package (see [Versioning](README.md#versioning)). Record every release here.
+
+| Swift release | Python SDK | Notes |
+| --- | --- | --- |
+| Unreleased (planned 0.7.2) | 0.7.1 | Swift-only: HTTP backend package traits |
+| 0.7.1 | 0.7.1 | Upstream sync |
+| 0.7.0 | 0.7.0 | Upstream sync |
+| 0.6.0 | 0.6.0 | Initial port |
+
 Python's request/response behavior, configuration, retries, errors, and logging are the parity target. Python synchronous wrappers and Python-specific serialization/runtime mechanisms are not Swift APIs. The macro and ad-hoc result-builder APIs are Swift additions over the same dynamic implementation.
 
 ## Sync procedure
@@ -15,9 +26,9 @@ Python's request/response behavior, configuration, retries, errors, and logging 
 1. Resolve the newest stable Python release and its exact commit; compare it with the submodule pin.
 2. Review `_core`, `_schemas`, constants, changelog, and behavioral tests. Check the JS release for discrepancies and new coverage.
 3. Port each user-visible change and its tests. Keep `docs/parity.md` explicit about deliberate deviations.
-4. Update the submodule, this file, README, and CHANGELOG together. Preserve upstream license notices.
+4. Update the submodule, this file (including the release mapping), README, and CHANGELOG together. Preserve upstream license notices.
 5. Run Swift Testing, compile Examples, and verify HTTP transport behavior on macOS and Linux.
-6. Commit the changes. Mirror the upstream version only after parity gates pass; tag from verified main without a `v` prefix.
+6. Commit the changes. Only after parity gates pass, set `TypeSafeClient.version` to the upstream version and choose the Swift tag. An upstream minor or major release uses its MAJOR.MINOR with patch 0. An upstream patch release uses the next free Swift patch in the current line. Skip upstream patches that only fix Python-specific behavior. Tag from verified main without a `v` prefix.
 
 ## Reviewed implementation
 
