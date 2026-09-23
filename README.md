@@ -20,11 +20,9 @@ Add the `TypeSafe` product to your target:
 
 ## Usage
 
-Choose a question style based on how your application defines questions: a reusable typed schema, typed questions at the call site, or runtime-defined questions. All three use the same client and request handling.
+Set `TYPESAFE_API_KEY` or pass `apiKey` to `TypeSafeClient`, then choose the question style that fits your application.
 
 ### Typed reusable questions
-
-Set `TYPESAFE_API_KEY`, or pass `apiKey` explicitly:
 
 ```swift
 import TypeSafe
@@ -56,9 +54,7 @@ print(result.answers.urgent.noul)     // Probability, 0...1
 print(result.answers.severity.score)  // Expected score; may be fractional
 ```
 
-`@QuestionSet` generates concrete typed answers. The declaration describes a schema; pass its type rather than constructing an instance. Choice enums must have `String` raw values and conform to `CaseIterable`, `Hashable`, and `Sendable`. No `.erased` conversion is needed.
-
-Use `criteria:` on `@Choice` to supply descriptions keyed by the enum's raw strings, or on `@Noul` with `"true"` and `"false"` keys. Instructions and descriptions accept text, JSON objects, or arrays. Missing answers, wrong answer kinds, and unknown choice labels throw response-validation errors in the typed API.
+Pass a `@QuestionSet` type to get reusable questions with concrete typed answers.
 
 ### Typed ad-hoc questions
 
@@ -76,34 +72,7 @@ print(urgent.noul)     // Probability, 0...1
 print(severity.score)  // Expected score; may be fractional
 ```
 
-The builder overload returns `TypedSystemOneResponse`, just like the schema overload. `QuestionBuilder` uses variadic generics to provide a flat tuple in `.answers` in declaration order, with no fixed arity limit. For one question, `.answers` is the single answer:
-
-```swift
-let urgent = try await client.systemOne(state: "I was charged twice.") {
-    Noul("Does this need urgent attention?")
-}.answers
-print(urgent.noul)
-```
-
-Keep the response when you also need metadata:
-
-```swift
-let response = try await client.systemOne(state: "I was charged twice.") {
-    Choice<Category>("What is this ticket about?")
-    Noul("Does this need urgent attention?")
-}
-let (category, urgent) = response.answers
-print(response.model)
-print(response.usage)
-print(response.requestID as Any)
-print(response.rawHTTPResponse?.status as Any)
-```
-
-`Choice<Label>`, `Noul`, and `Score` accept the same instructions and criteria as their macro counterparts and use the same typed answer validation. `Score` is not generic: ordered criteria produce a `ScoreAnswer` with a fractional `Double`, not an enum case. Custom descriptors can conform to `TypedQuestion`.
-
-The closure runs once on the caller's actor and may throw when constructing questions. `model:`, `extraBody:`, and `options:` work just as they do for the other overloads; all three interfaces use the same request/response implementation.
-
-Wire keys are positional (`question_0`, `question_1`, ...), including in response-validation error paths. An empty builder throws before any request is sent. The builder supports a fixed sequence of expressions and local declarations, not `if`/`switch` blocks or runtime-sized loops; use the dynamic API for runtime-varying collections.
+The builder returns typed answers in declaration order; use it when questions are local to one call.
 
 ### Dynamic questions
 
@@ -125,9 +94,7 @@ print(result.choices["category"]?.choice) // String?
 print(result.nouls["urgent"]?.noul)
 ```
 
-`JSONValue` supports JSON literals and `JSONValue(encoding:)` for `Encodable` application models. State must be text, an object, or an array. `.raw(["type": "future", ...])` preserves extension fields and explicit nulls. `extraBody` shallowly overrides top-level fields, including `state`, `model`, and `questions`.
-
-The dynamic response provides `answers`, `nouls`, `choices`, and `scores`. Unknown answer kinds are skipped with a warning and retained in `rawHTTPResponse.body`. Score legends and probabilities use integer keys. Usage token counts are optional.
+The dynamic API accepts questions built at runtime and returns answers by name.
 
 ### Models and response metadata
 
@@ -138,9 +105,7 @@ print(response.requestID as Any)
 print(response.rawHTTPResponse?.status as Any)
 ```
 
-Responses expose buffered status, headers, and body. Metadata is not included when encoding a response as JSON. Both schema-based and builder-based typed responses expose the original dynamic response as `response`.
-
-If your application has a response schema, pass it as `responseModel:`. It is decoded from the same successful response; standard API errors and validation paths remain available through `TypeSafeError`.
+Responses expose request metadata and raw HTTP data; use `responseModel:` to decode into your own `Decodable & Sendable` type.
 
 ```swift
 struct SpamResponse: Decodable, Sendable {
