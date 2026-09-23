@@ -1,6 +1,6 @@
 # swift-typesafe
 
-Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.0 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
+Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.1 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
 
 Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-proposal) package, pinned to 0.2.1. The proposal may change; its Swift 6.4 and OS requirements apply to this SDK.
 
@@ -9,7 +9,7 @@ Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-p
 Add [swift-typesafe](https://github.com/ainame/swift-typesafe) to your Swift package dependencies:
 
 ```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.0")
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.1")
 ```
 
 Add the `TypeSafe` product to your target:
@@ -24,7 +24,7 @@ During local development:
 .package(path: "/path/to/swift-typesafe")
 ```
 
-Releases mirror the reviewed upstream version, with tags such as `0.7.0` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
+Releases mirror the reviewed upstream version, with tags such as `0.7.1` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
 
 ## Typed reusable questions
 

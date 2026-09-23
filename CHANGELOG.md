@@ -1,11 +1,22 @@
 # Changelog
 
-## Unreleased
+The release versions follow [Python SDK upstream releases](https://github.com/typesafe-ai/typesafe-sdk-python).
+So each release may include improvements, bug fixes, or breaking changes (if needed) in Swift SDK side.
+
+## 0.7.1 — unreleased
 
 ### Added
 
 - Add a `QuestionBuilder` overload of `systemOne` for typed ad-hoc questions using `Choice<Label>`, `Noul`, and `Score`. It returns `TypedSystemOneResponse`, preserving response metadata and the original dynamic response. Variadic generics produce a flat tuple in `.answers` in declaration order without a fixed arity limit, or a single answer for one question.
 - Add the `TypedQuestion` customization protocol, sharing dynamic request handling and existing typed response validation with the macro API.
+
+### Fixed
+
+- Trim and validate API keys during client initialization, and redact credentials from transport connection errors.
+
+### Changed
+
+- Sync the reviewed Python SDK submodule to `v0.7.1` (`0ffd094c72ed9445223060b24ffd7a56aa781fb4`).
 
 ## 0.7.0 — 2026-09-20
 

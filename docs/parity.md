@@ -1,6 +1,6 @@
-# Python 0.7.0 parity
+# Python 0.7.1 parity
 
-The primary reference is `vendor/typesafe-sdk-python` at `2ce5c65f13646cab6e6f782328194c9d85f3300a`. JS 0.6.0 remains a secondary reference, not an interchangeable behavioral specification; no corresponding JS 0.7.0 tag exists.
+The primary reference is `vendor/typesafe-sdk-python` at `0ffd094c72ed9445223060b24ffd7a56aa781fb4`. JS 0.6.0 remains a secondary reference, not an interchangeable behavioral specification; no corresponding JS 0.7.1 tag exists.
 
 ## Coverage
 
@@ -26,6 +26,7 @@ The primary reference is `vendor/typesafe-sdk-python` at `2ce5c65f13646cab6e6f78
 | Concurrent calls and cancellation | Immutable client, per-call state, structured tasks | `RetryTests`, native cancellation/body-timeout tests |
 | Custom transport/client and connection settings | `TypeSafeTransport`, `HTTPClientTransport(client:options:)` | Mock transport tests and native adapter tests |
 | Log levels and credential header redaction | Injected swift-log logger and environment level | `LoggingTests` |
+| Trimmed, printable ASCII API keys; credential redaction in connection errors | Client initialization and transport error mapping | `ConfigurationTests`, `LoggingTests` |
 | Typed question schema (Swift addition) | `@QuestionSet`, `@Choice`, `@Noul`, `@Score` | Macro expansion/diagnostic tests, runtime typed decoding, external Examples package |
 | Typed ad-hoc questions (Swift addition) | `QuestionBuilder`, `Choice<Label>`, `Noul`, `Score`, flat answer tuples | `QuestionBuilderTests`, external Examples package |
 
@@ -60,6 +61,6 @@ All automated tests use fixtures or loopback HTTP servers. They establish SDK be
 ## Verification record
 
 - Swift 6.4.0 selected through swiftly on both platforms.
-- macOS 27, arm64: 45 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.0 sync, including their parameterized cases and custom response-model coverage.
+- macOS 27, arm64: 48 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.1 sync, including their parameterized cases and API key and connection error regression coverage.
 - The external example package compiled successfully on macOS.
 - Linux, production API calls, hosted GitHub Actions runs, and Apple mobile simulator/device testing were not performed for this sync.

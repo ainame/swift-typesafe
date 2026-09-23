@@ -27,6 +27,24 @@ func configurationPrecedence(source: String) async throws {
     #expect(!String(describing: c).contains("key"))
 }
 
+@Test(arguments: ["", " \t\r\n ", "pre fix", "pre\tfix", "pre\nfix", "pre\u{0}fix", "pre\u{7f}fix", "précis"])
+func invalidAPIKeysDoNotFallBackToEnvironment(key: String) throws {
+    #expect(throws: TypeSafeError.self) {
+        try TypeSafeClient(apiKey: key, environment: ["TYPESAFE_API_KEY": "valid-env-key"])
+    }
+    #expect(throws: TypeSafeError.self) {
+        try TypeSafeClient(environment: ["TYPESAFE_API_KEY": key])
+    }
+}
+
+@Test(arguments: ["\n", "\r\n", " \t\r\n "])
+func APIKeyPaddingIsTrimmed(padding: String) async throws {
+    let mock = MockTransport { _, _ in response(modelsFixture) }
+    let c = try TypeSafeClient(apiKey: "\(padding)test-key\(padding)", transport: mock, environment: [:])
+    _ = try await c.models.list()
+    #expect(await mock.requests.first?.headers["authorization"] == "Bearer test-key")
+}
+
 @Test(arguments: [0.0, -1, .infinity, .nan])
 func invalidTimeoutsFailBeforeNetwork(value: Double) async throws {
     #expect(throws: TypeSafeError.self) { try TypeSafeClient(apiKey: "k", timeout: value) }

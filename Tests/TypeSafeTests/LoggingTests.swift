@@ -38,6 +38,31 @@ func loggingLevelsAndRedaction(level: String) async throws {
     }
 }
 
+private struct EchoedCredentialError: Error, CustomStringConvertible {
+    let description: String
+}
+
+@Test(arguments: ["plain-secret", "quo'te\"slash\\tail"])
+func transportErrorRedactsCredentials(credential: String) async throws {
+    let provider = "provider-secret"
+    let mock = MockTransport { request, _ in
+        let encoded = String(decoding: try JSONEncoder().encode(credential), as: UTF8.self)
+        throw EchoedCredentialError(description: "header=\(request.headers["authorization", default: ""]) json=\(encoded) provider=\(provider)")
+    }
+    let c = try TypeSafeClient(apiKey: credential, retry: .init(maxRetries: 0),
+        headers: ["x-client-secret": provider], transport: mock, environment: [:])
+    do {
+        _ = try await c.models.list()
+        Issue.record("Expected a connection error")
+    } catch let error as TypeSafeError {
+        guard case .connection(let message) = error else { Issue.record("Expected a connection error"); return }
+        #expect(message.contains("***"))
+        #expect(!message.contains(credential))
+        #expect(!message.contains(provider))
+        #expect(!message.contains("Bearer \(credential)"))
+    }
+}
+
 @Test func unknownAnswersProduceWarning() async throws {
     let recorder = LogRecorder()
     let logger = Logger(label: "test") { _ in RecordingLogHandler(recorder: recorder) }
