@@ -26,7 +26,7 @@ During local development:
 
 Releases mirror the reviewed upstream version, with tags such as `0.7.0` (no `v`). See [UPSTREAM.md](UPSTREAM.md) for exact upstream commits and [the parity record](docs/parity.md) for verified behavior and Swift adaptations.
 
-## Typed questions
+## Typed reusable questions
 
 Set `TYPESAFE_API_KEY`, or pass `apiKey` explicitly:
 
@@ -64,6 +64,51 @@ print(result.answers.severity.score)  // Expected score; may be fractional
 
 Use `criteria:` on `@Choice` to supply descriptions keyed by the enum's raw strings, or on `@Noul` with `"true"` and `"false"` keys. Instructions and descriptions accept text, JSON objects, or arrays. Missing answers, wrong answer kinds, and unknown choice labels throw response-validation errors in the typed API.
 
+## Typed ad-hoc questions
+
+For local judgments, use a result-builder closure instead of declaring a schema:
+
+```swift
+let (category, urgent, severity) = try await client.systemOne(state: "I was charged twice.") {
+    Choice<Category>("What is this ticket about?")
+    Noul("Does this need urgent attention?")
+    Score("How severe is the issue?", criteria: ["minor", "moderate", "severe"])
+}.answers
+
+print(category.choice) // Category
+print(urgent.noul)     // Probability, 0...1
+print(severity.score)  // Expected score; may be fractional
+```
+
+The builder overload returns `TypedSystemOneResponse`, just like the schema overload. `QuestionBuilder` uses variadic generics to provide a flat tuple in `.answers` in declaration order, with no fixed arity limit. For one question, `.answers` is the single answer:
+
+```swift
+let urgent = try await client.systemOne(state: "I was charged twice.") {
+    Noul("Does this need urgent attention?")
+}.answers
+print(urgent.noul)
+```
+
+Keep the response when you also need metadata:
+
+```swift
+let response = try await client.systemOne(state: "I was charged twice.") {
+    Choice<Category>("What is this ticket about?")
+    Noul("Does this need urgent attention?")
+}
+let (category, urgent) = response.answers
+print(response.model)
+print(response.usage)
+print(response.requestID as Any)
+print(response.rawHTTPResponse?.status as Any)
+```
+
+`Choice<Label>`, `Noul`, and `Score` accept the same instructions and criteria as their macro counterparts and use the same typed answer validation. `Score` is not generic: ordered criteria produce a `ScoreAnswer` with a fractional `Double`, not an enum case. Custom descriptors can conform to `TypedQuestion`.
+
+The closure runs once on the caller's actor and may throw when constructing questions. `model:`, `extraBody:`, and `options:` work just as they do for the other overloads; all three interfaces use the same request/response implementation.
+
+Wire keys are positional (`question_0`, `question_1`, ...), including in response-validation error paths. An empty builder throws before any request is sent. The builder supports a fixed sequence of expressions and local declarations, not `if`/`switch` blocks or runtime-sized loops; use the dynamic API for runtime-varying collections.
+
 ## Dynamic questions
 
 For questions whose names or choices are determined at runtime:
@@ -97,7 +142,7 @@ print(response.requestID as Any)
 print(response.rawHTTPResponse?.status as Any)
 ```
 
-Responses expose buffered status, headers, and body. Metadata is not included when encoding a response as JSON. Typed responses expose the original dynamic response as `response`.
+Responses expose buffered status, headers, and body. Metadata is not included when encoding a response as JSON. Both schema-based and builder-based typed responses expose the original dynamic response as `response`.
 
 If your application has a response schema, pass it as `responseModel:`. It is decoded from the same successful response; standard API errors and validation paths remain available through `TypeSafeError`.
 

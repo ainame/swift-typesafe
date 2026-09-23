@@ -16,6 +16,22 @@ struct TicketQuestions {
         print(response.answers.category.choice)
         print(response.answers.urgent.noul)
         print(response.answers.severity.score)
+
+        let (category, urgent, severity) = try await client.systemOne(state: "I was charged twice.") {
+            Choice<Category>("What is this ticket about?")
+            Noul("Does this need urgent attention?")
+            Score("How severe is this issue?", criteria: ["minor", "moderate", "severe"])
+        }.answers
+        print(category.choice)
+        print(urgent.noul)
+        print(severity.score)
+
+        let shouldReply = try await client.systemOne(state: "I was charged twice.") {
+            Noul("Should customer support reply?")
+        }
+        print(shouldReply.answers.noul)
+        print(shouldReply.usage)
+        print(shouldReply.requestID as Any)
         print(try await client.models.list().models)
     }
 }

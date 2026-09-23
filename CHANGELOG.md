@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+### Added
+
+- Add a `QuestionBuilder` overload of `systemOne` for typed ad-hoc questions using `Choice<Label>`, `Noul`, and `Score`. It returns `TypedSystemOneResponse`, preserving response metadata and the original dynamic response. Variadic generics produce a flat tuple in `.answers` in declaration order without a fixed arity limit, or a single answer for one question.
+- Add the `TypedQuestion` customization protocol, sharing dynamic request handling and existing typed response validation with the macro API.
+
 ## 0.7.0 — 2026-09-20
 
 ### Added
