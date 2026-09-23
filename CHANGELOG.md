@@ -3,6 +3,12 @@
 The release versions follow [Python SDK upstream releases](https://github.com/typesafe-ai/typesafe-sdk-python).
 So each release may include improvements, bug fixes, or breaking changes (if needed) in Swift SDK side.
 
+## Unreleased
+
+### Added
+
+- Add `URLSession` (default) and `AsyncHTTPClient` package traits that select the default transport's HTTP backend. Only the selected backend is compiled, rather than both through the proposal's `HTTPClient` product. Linux uses AsyncHTTPClient under the default trait.
+
 ## 0.7.1 - 2026-09-23
 
 ### Added

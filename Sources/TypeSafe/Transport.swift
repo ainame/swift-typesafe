@@ -1,5 +1,18 @@
 import Foundation
-import HTTPClient
+import HTTPAPIs
+
+// The backend is chosen by package traits so only one HTTP stack is compiled.
+// AsyncHTTPClient wins when enabled; URLSession falls back to it off Darwin (see Package.swift).
+#if AsyncHTTPClient || (URLSession && os(Linux))
+import AHCHTTPClient
+import AsyncHTTPClient
+
+private func defaultHTTPClient() -> AsyncHTTPClient.HTTPClient { .shared }
+#elseif URLSession && canImport(Darwin)
+import URLSessionHTTPClient
+
+private func defaultHTTPClient() -> URLSessionHTTPClient { .shared }
+#endif
 
 /// A fully prepared request. Custom transports should cooperate with task cancellation.
 public struct TransportRequest: Sendable {
@@ -15,12 +28,21 @@ public protocol TypeSafeTransport: Sendable {
 }
 
 /// Adapter for Apple's proposed common HTTPClient API. Inject a client to configure TLS and pooling.
-/// Injected clients remain caller-owned; the default uses DefaultHTTPClient.shared.
+/// Injected clients remain caller-owned. The default uses the shared client of the backend selected by
+/// the `URLSession` (default) or `AsyncHTTPClient` package trait.
 public struct HTTPClientTransport: TypeSafeTransport {
     private let operation: @Sendable (TransportRequest) async throws -> RawHTTPResponse
 
     public init(maximumResponseBytes: Int = 16 * 1024 * 1024) {
-        self.init(client: DefaultHTTPClient.shared, maximumResponseBytes: maximumResponseBytes)
+        #if AsyncHTTPClient || (URLSession && os(Linux)) || (URLSession && canImport(Darwin))
+        self.init(client: defaultHTTPClient(), maximumResponseBytes: maximumResponseBytes)
+        #else
+        operation = { _ in
+            throw TypeSafeError.configuration(
+                "No default HTTP client: enable the URLSession or AsyncHTTPClient trait, or inject a transport."
+            )
+        }
+        #endif
     }
 
     public init<Client: HTTPAPIs.HTTPClient & Copyable>(
