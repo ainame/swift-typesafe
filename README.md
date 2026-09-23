@@ -20,6 +20,8 @@ Add the `TypeSafe` product to your target:
 
 ### HTTP backend traits
 
+> **Unreleased.** These traits are not part of 0.7.1, which always compiles both backends. They ship in the next release, planned as 0.7.2.
+
 The default transport is backed by one HTTP implementation from Apple's proposal, selected with package traits so the other is not compiled:
 
 | Trait | Backend |
@@ -30,7 +32,7 @@ The default transport is backed by one HTTP implementation from Apple's proposal
 To use AsyncHTTPClient instead:
 
 ```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.1", traits: ["AsyncHTTPClient"])
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.2", traits: ["AsyncHTTPClient"])
 ```
 
 With `traits: []`, neither backend is compiled. Inject a transport or client (see [Custom HTTP clients](#custom-http-clients)); the default transport throws `TypeSafeError.configuration`.
