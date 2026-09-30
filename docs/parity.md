@@ -1,6 +1,6 @@
-# Python 0.7.1 parity
+# Python 0.7.2 parity
 
-The primary reference is `vendor/typesafe-sdk-python` at `0ffd094c72ed9445223060b24ffd7a56aa781fb4`. JS 0.6.0 remains a secondary reference, not an interchangeable behavioral specification; no corresponding JS 0.7.1 tag exists.
+The primary reference is `vendor/typesafe-sdk-python` at `f078f1e208a0d885154dc758344ae4fce77ac168`. Python 0.7.2 adds an optional HTTP/2 package extra and documentation without changing runtime code, schemas, constants, or tests. Swift HTTP backend selection is documented in the README. JS 0.6.0 remains a secondary reference, not an interchangeable behavioral specification; no corresponding JS 0.7.2 tag exists.
 
 ## Coverage
 
@@ -61,6 +61,6 @@ All automated tests use fixtures or loopback HTTP servers. They establish SDK be
 ## Verification record
 
 - Swift 6.4.0 selected through swiftly on both platforms.
-- macOS 27, arm64: 48 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.1 sync, including their parameterized cases and API key and connection error regression coverage.
+- macOS arm64: 62 runtime/API tests and 4 macro expansion/diagnostic tests passed for the Python 0.7.2 sync, including their parameterized cases and API key and connection error regression coverage.
 - The external example package compiled successfully on macOS.
 - Linux, production API calls, hosted GitHub Actions runs, and Apple mobile simulator/device testing were not performed for this sync.

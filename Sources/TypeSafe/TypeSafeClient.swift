@@ -14,7 +14,7 @@ public struct RequestOptions: Sendable {
 public struct TypeSafeClient: Sendable, CustomStringConvertible {
     /// The Python SDK version this release implements, sent in SDK identification headers.
     /// It can differ from this package's release tag, whose PATCH is owned by the Swift package.
-    public static let version = "0.7.1"
+    public static let version = "0.7.2"
     public static let defaultBaseURL = "https://api.typesafe.ai"
     public static let defaultModel = "jev-latest"
     public static let defaultTimeout = 10.0

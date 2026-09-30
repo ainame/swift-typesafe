@@ -1,10 +1,10 @@
 # Upstream basis
 
-- Primary behavior: [TypeSafe Python SDK v0.7.1](https://github.com/typesafe-ai/typesafe-sdk-python/tree/v0.7.1), pinned in `vendor/typesafe-sdk-python`.
+- Primary behavior: [TypeSafe Python SDK v0.7.2](https://github.com/typesafe-ai/typesafe-sdk-python/tree/v0.7.2), pinned in `vendor/typesafe-sdk-python`.
 - Secondary reference: [TypeSafe JS SDK v0.6.0](https://github.com/typesafe-ai/typesafe-sdk-js/tree/v0.6.0).
-- Python reviewed commit: `0ffd094c72ed9445223060b24ffd7a56aa781fb4`.
+- Python reviewed commit: `f078f1e208a0d885154dc758344ae4fce77ac168`.
 - JS reviewed commit: `66880ccded6cb642dc1809620c2b108c33730214`.
-- Reviewed: 2026-09-23.
+- Reviewed: 2026-09-30.
 - HTTP dependency: `apple/swift-http-api-proposal` 0.2.1, exact version.
 - Swift: 6.4.0 via swiftly; SwiftSyntax 604.0.0.
 
@@ -14,6 +14,7 @@ MAJOR.MINOR follows the Python SDK release; PATCH belongs to this package (see [
 
 | Swift release | Python SDK | Notes |
 | --- | --- | --- |
+| 0.7.3 | 0.7.2 | Upstream packaging and documentation sync; no runtime change |
 | 0.7.2 | 0.7.1 | Swift-only: HTTP backend package traits and package-owned patch numbering |
 | 0.7.1 | 0.7.1 | Upstream sync |
 | 0.7.0 | 0.7.0 | Upstream sync |
@@ -38,9 +39,11 @@ Reviewed JS source: `src/client.ts`, `types.ts`, `questions.ts`, `retry.ts`, `ap
 
 The Swift port implements the API feature set with the deliberate Swift adaptations enumerated in [docs/parity.md](docs/parity.md). Runtime state and payload handling follow Python; macro-based schemas and result-builder answer tuples are additional Swift layers. Wire models are handwritten and reviewed against upstream generated models and runtime corrections (including optional usage fields). Python 0.7.0's Pydantic-specific serialization migration is represented in Swift by Codable; its custom response-model feature is available through `responseModel:`. Python 0.7.1's API key validation and transport error redaction are implemented in the shared Swift client.
 
+Python 0.7.2 changes only package metadata and documentation: it adds an optional `http2` dependency extra. Its `_core`, `_schemas`, constants, and tests are unchanged from 0.7.1. Swift selects its HTTP implementation through package traits and injected clients rather than Python package extras.
+
 ## Verification
 
 - Swift 6.4.0 through swiftly.
-- macOS arm64: 48 runtime/API tests and 4 macro tests passed for this v0.7.1 sync, including native HTTPClient round trips, key validation, credential redaction, retries, timeouts, cancellation, and custom response models.
+- macOS arm64: 62 runtime/API tests and 4 macro tests passed for this v0.7.2 sync, including native HTTPClient round trips, key validation, credential redaction, retries, timeouts, cancellation, and custom response models.
 - The external example package compiled successfully on macOS arm64.
 - Linux, live TypeSafe API calls, hosted CI, and Apple mobile device/simulator tests were not run for this sync.
