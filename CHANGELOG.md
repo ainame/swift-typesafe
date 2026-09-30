@@ -3,6 +3,19 @@
 Versions follow [Semantic Versioning](https://semver.org). MAJOR.MINOR follows the [Python SDK](https://github.com/typesafe-ai/typesafe-sdk-python) release it implements. PATCH is owned by this package, so it can differ from the Python patch number. See [Versioning](README.md#versioning).
 Each entry names the Python release it implements. Upstream minor releases can include breaking changes while the SDK is 0.x.
 
+## 0.7.3 - 2026-09-30
+
+Implements Python SDK 0.7.2. Its upstream patch adds an optional HTTP/2 package extra and documentation, with no runtime or schema changes.
+
+### Changed
+
+- Sync the reviewed Python SDK to `v0.7.2` and record its packaging-only change. Swift continues to configure HTTP backends through package traits and injected clients. [#7](https://github.com/ainame/swift-typesafe/pull/7)
+
+### Documentation
+
+- Reorganize the README around installation, question APIs, and common client configuration. [#5](https://github.com/ainame/swift-typesafe/pull/5)
+- Explain how to share a server-owned AsyncHTTPClient instance and connection pool with the SDK. [#6](https://github.com/ainame/swift-typesafe/pull/6)
+
 ## 0.7.2 - 2026-09-23
 
 Implements Python SDK 0.7.1. This is a Swift-only patch release.
