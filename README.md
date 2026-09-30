@@ -1,6 +1,6 @@
 # swift-typesafe
 
-Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.1 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
+Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.2 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
 
 Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-proposal) package, pinned to 0.2.1. The proposal may change; its Swift 6.4 and OS requirements apply to this SDK.
 
