@@ -16,7 +16,7 @@ import TypeSafeMacros
             var ready: Double
 
             static var questions: [String: TypeSafe.Question] {
-                ["ready": .noul(instructions: "Ready?", criteria: nil)]
+                ["ready": TypeSafe.Noul("Ready?", criteria: nil).question]
             }
 
             struct Answers: Sendable {

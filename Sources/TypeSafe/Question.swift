@@ -2,24 +2,31 @@ import Foundation
 
 /// Dynamic questions. Omitted optional arguments are not sent; use `.raw` for explicit nulls.
 public enum Question: Sendable, Equatable, Encodable {
-    /// Dictionary criteria have no ordering guarantee; use `orderedCriteria:` when order matters.
-    case noul(instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil)
-    /// Dictionary criteria have no ordering guarantee; use `orderedCriteria:` when order matters.
-    case choice(instructions: JSONValue? = nil, criteria: [String: JSONValue])
-    case orderedNoul(instructions: JSONValue? = nil, criteria: OrderedCriteria)
-    case orderedChoice(instructions: JSONValue? = nil, criteria: OrderedCriteria)
+    case noul(instructions: JSONValue? = nil, criteria: OrderedCriteria? = nil)
+    case choice(instructions: JSONValue? = nil, criteria: OrderedCriteria)
     case score(instructions: JSONValue? = nil, criteria: [JSONValue])
     /// Forward-compatible question object; unknown nonempty type tags pass through to the API.
     case raw([String: JSONValue])
 
-    /// Dictionary criteria have no ordering guarantee. Use this overload for explicit order.
-    public static func choice(instructions: JSONValue? = nil, orderedCriteria: OrderedCriteria) -> Self {
-        .orderedChoice(instructions: instructions, criteria: orderedCriteria)
+    /// Compatibility for dictionary variables. Keys are sorted because their insertion order is unavailable.
+    // The generic fallback keeps Swift from preferring Dictionary for an untyped literal.
+    @_disfavoredOverload
+    public static func choice<Descriptions: Collection>(
+        instructions: JSONValue? = nil, criteria: Descriptions
+    ) -> Self where Descriptions.Element == (key: String, value: JSONValue) {
+        let dictionary = Dictionary(criteria.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last })
+        return .choice(instructions: instructions, criteria: OrderedCriteria(dictionary: dictionary))
     }
 
-    /// Sends criteria in their insertion order.
-    public static func noul(instructions: JSONValue? = nil, orderedCriteria: OrderedCriteria) -> Self {
-        .orderedNoul(instructions: instructions, criteria: orderedCriteria)
+    /// Compatibility for optional dictionary variables, with sorted keys.
+    @_disfavoredOverload
+    public static func noul<Descriptions: Collection>(
+        instructions: JSONValue? = nil, criteria: Descriptions?
+    ) -> Self where Descriptions.Element == (key: String, value: JSONValue) {
+        let ordered = criteria.map { entries in
+            OrderedCriteria(dictionary: Dictionary(entries.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last }))
+        }
+        return .noul(instructions: instructions, criteria: ordered)
     }
 
     public func encode(to encoder: any Encoder) throws { try payload.encode(to: encoder) }
@@ -32,14 +39,8 @@ public enum Question: Sendable, Equatable, Encodable {
         case .noul(let value, let criteria):
             instructions = value
             result = ["type": "noul"]
-            if let criteria { result["criteria"] = .object(criteria) }
+            if let criteria { result["criteria"] = .object(criteria.dictionary) }
         case .choice(let value, let criteria):
-            instructions = value
-            result = ["type": "choice", "criteria": .object(criteria)]
-        case .orderedNoul(let value, let criteria):
-            instructions = value
-            result = ["type": "noul", "criteria": .object(criteria.dictionary)]
-        case .orderedChoice(let value, let criteria):
             instructions = value
             result = ["type": "choice", "criteria": .object(criteria.dictionary)]
         case .score(let value, let criteria):
@@ -53,8 +54,10 @@ public enum Question: Sendable, Equatable, Encodable {
     var wirePayload: RequestJSON {
         var fields = payload.mapValues { RequestJSON.value($0) }
         switch self {
-        case .orderedChoice(_, let criteria), .orderedNoul(_, let criteria):
+        case .choice(_, let criteria):
             fields["criteria"] = .orderedObject(criteria)
+        case .noul(_, let criteria):
+            if let criteria { fields["criteria"] = .orderedObject(criteria) }
         default: break
         }
         return .object(fields)

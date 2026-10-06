@@ -84,7 +84,7 @@ let result = try await client.systemOne(
     questions: [
         "category": .choice(
             instructions: "What is this ticket about?",
-            orderedCriteria: ["billing": nil, "technical": nil, "other": nil]
+            criteria: ["billing": nil, "technical": nil, "other": nil]
         ),
         "urgent": .noul(instructions: "Does this need urgent attention?")
     ]
@@ -96,9 +96,11 @@ print(result.nouls["urgent"]?.noul)
 
 The dynamic API accepts questions built at runtime and returns answers by name.
 
-Option order can affect the model's probabilities. `@Choice` and `Choice<Label>(criteria:)` send options in `Label.allCases` order, including when descriptions are supplied. For dynamic choices and Noul criteria, use `orderedCriteria:` with an `OrderedCriteria` dictionary literal, `OrderedCriteria(keyValuePairs)`, or `OrderedCriteria(pairs: entries)` for a runtime array of `(String, JSONValue)` pairs. `Choice<Label>(orderedCriteria:)`, `Noul(orderedCriteria:)`, and `@Noul(orderedCriteria:)` also accept explicit order. Repeated keys keep their first position and last description.
+Option order can affect the model's probabilities. Choice and Noul `criteria:` dictionary literals preserve their written order by default, including in macros and builders. When choice criteria are omitted, `@Choice` and `Choice<Label>` send options in `Label.allCases` order.
 
-The existing dynamic `criteria:` dictionary inputs remain supported, but Swift dictionaries have no ordering guarantee. `.raw` and criteria supplied through `extraBody` also use ordinary JSON dictionaries. Ordered criteria retain their order in requests sent by `TypeSafeClient`; Foundation's `JSONEncoder` does not guarantee key order when encoding `Question` directly.
+For runtime options with a known order, pass `OrderedCriteria(keyValuePairs)` or `OrderedCriteria(pairs: entries)` for an array of `(String, JSONValue)` pairs to `criteria:`. Repeated keys keep their first position and last description. Existing `[String: JSONValue]` variables remain accepted: dynamic Choice and Noul sort their keys; enum-backed choices use enum order with extra keys sorted afterward. A dictionary variable has already lost its insertion order, so use `OrderedCriteria` to retain a particular sequence.
+
+This ordering guarantee applies to requests sent by `TypeSafeClient`. Raw JSON and `extraBody` objects use ordinary dictionaries, and direct Foundation `JSONEncoder` encoding of `Question` does not guarantee object-key order.
 
 ### Models and response metadata
 

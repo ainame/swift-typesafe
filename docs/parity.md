@@ -34,9 +34,11 @@ The native adapter tests exercise the URLSession-backed client on macOS and the 
 
 ## Criteria ordering
 
-Python dictionaries preserve insertion order. Swift enum-backed `@Choice` and `Choice<Label>(criteria:)` requests preserve `allCases` order, with supplied descriptions retaining their subset of keys. Description keys outside the enum follow in sorted order. Explicit `orderedCriteria:` inputs preserve insertion order for Choice and Noul in the shared request serializer, including the custom response-model path. Regression tests inspect request bytes because decoding into a dictionary discards order.
+Python dictionaries preserve insertion order. Swift Choice and Noul `criteria:` literals preserve their written order by default across dynamic, macro, and builder APIs, including custom response models. Omitted enum-backed choice criteria follow `allCases`. Supplied criteria retain their existing subset and their insertion order. Regression tests inspect request bytes because decoding into a dictionary discards order.
 
-Dynamic `criteria:` dictionaries, raw JSON objects, and `extraBody` objects have no key-order guarantee. Use `OrderedCriteria` when option order matters. Its repeated keys retain their first position and final description. Direct Foundation Codable encoding does not guarantee object-key order; the ordering contract applies to `TypeSafeClient` requests.
+For runtime ordered entries, pass `OrderedCriteria` through the same `criteria:` argument. Repeated keys retain their first position and final description. Existing dictionary variables remain accepted: dynamic Choice and Noul sort keys; enum-backed choices follow `allCases` with unknown keys sorted afterward. Swift dictionaries have already lost insertion order, so these compatibility overloads provide deterministic ordering rather than the caller's original insertion order.
+
+Raw JSON and `extraBody` objects have no key-order guarantee. Direct Foundation Codable encoding does not guarantee object-key order; the ordering contract applies to `TypeSafeClient` requests.
 
 ## Deliberate Swift adaptations
 

@@ -17,6 +17,11 @@ public struct OrderedCriteria: Sendable, Equatable, ExpressibleByDictionaryLiter
         self.init(entries: pairs.map { Entry(key: $0.0, value: $0.1) })
     }
 
+    /// A dictionary has already lost its insertion order. Use sorted keys for stable requests.
+    public init(dictionary: [String: JSONValue]) {
+        self.init(entries: dictionary.keys.sorted().map { Entry(key: $0, value: dictionary[$0]!) })
+    }
+
     public init(dictionaryLiteral elements: (String, JSONValue)...) {
         self.init(entries: elements.map { Entry(key: $0.0, value: $0.1) })
     }

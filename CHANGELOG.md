@@ -7,7 +7,7 @@ Each entry names the Python release it implements. Upstream minor releases can i
 
 ### Fixed
 
-- Preserve enum-backed Choice criteria in `allCases` order in outgoing requests. Add `OrderedCriteria` and `orderedCriteria:` inputs for explicit Choice and Noul option order across dynamic, builder, and Noul macro APIs. Existing dictionary criteria remain supported without an ordering guarantee. [#8](https://github.com/ainame/swift-typesafe/issues/8)
+- Preserve Choice and Noul `criteria:` literals in their written order across dynamic, macro, and builder APIs. Omitted enum-backed Choice criteria follow `allCases`. Add `OrderedCriteria` for runtime ordered entries; existing dictionary variables remain supported with deterministic ordering. [#8](https://github.com/ainame/swift-typesafe/issues/8)
 
 ## 0.7.3 - 2026-09-30
 
