@@ -36,7 +36,7 @@ The native adapter tests exercise the URLSession-backed client on macOS and the 
 
 Python dictionaries preserve insertion order. Swift Choice and Noul `criteria:` literals preserve their written order by default across dynamic, macro, and builder APIs, including custom response models. Omitted enum-backed choice criteria follow `allCases`. Supplied criteria retain their existing subset and their insertion order. Regression tests inspect request bytes because decoding into a dictionary discards order.
 
-For runtime ordered entries, pass `OrderedCriteria` through the same `criteria:` argument. Repeated keys retain their first position and final description. Existing dictionary variables remain accepted: dynamic Choice and Noul sort keys; enum-backed choices follow `allCases` with unknown keys sorted afterward. Swift dictionaries have already lost insertion order, so these compatibility overloads provide deterministic ordering rather than the caller's original insertion order.
+For runtime ordered entries, pass `Criteria` through the same `criteria:` argument. Repeated keys retain their first position and final description. Existing dictionary variables remain accepted: dynamic Choice and Noul sort keys; enum-backed choices follow `allCases` with unknown keys sorted afterward. Swift dictionaries have already lost insertion order, so these compatibility overloads provide deterministic ordering rather than the caller's original insertion order.
 
 Raw JSON and `extraBody` objects have no key-order guarantee. Direct Foundation Codable encoding does not guarantee object-key order; the ordering contract applies to `TypeSafeClient` requests.
 

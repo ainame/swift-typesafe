@@ -5,7 +5,7 @@ import Foundation
 indirect enum RequestJSON {
     case value(JSONValue)
     case object([String: RequestJSON])
-    case orderedObject(OrderedCriteria)
+    case orderedObject(Criteria)
 
     func encoded() throws -> Data {
         let encoder = JSONEncoder()

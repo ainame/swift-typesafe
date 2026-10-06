@@ -1,7 +1,7 @@
 /// Criteria whose JSON keys are sent in insertion order by `TypeSafeClient`.
 /// Dictionary literals preserve their written order; runtime entries can use `KeyValuePairs`.
 /// Repeated keys keep their first position and their last description.
-public struct OrderedCriteria: Sendable, Equatable, ExpressibleByDictionaryLiteral {
+public struct Criteria: Sendable, Equatable, ExpressibleByDictionaryLiteral {
     struct Entry: Sendable, Equatable {
         let key: String
         var value: JSONValue

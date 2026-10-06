@@ -12,7 +12,7 @@ public macro QuestionSet() = #externalMacro(module: "TypeSafeMacros", type: "Que
 
 /// Marks an enum choice. Omitted criteria follow `allCases`; supplied criteria preserve insertion order.
 @attached(peer)
-public macro Choice(_ instructions: JSONValue? = nil, criteria: OrderedCriteria? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
+public macro Choice(_ instructions: JSONValue? = nil, criteria: Criteria? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
 /// Compatibility for dictionary variables; known keys follow enum order and extra keys are sorted.
 @attached(peer)
@@ -20,7 +20,7 @@ public macro Choice(_ instructions: JSONValue? = nil, criteria: [String: JSONVal
 
 /// Marks a yes probability. Supplied criteria preserve insertion order.
 @attached(peer)
-public macro Noul(_ instructions: JSONValue? = nil, criteria: OrderedCriteria? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
+public macro Noul(_ instructions: JSONValue? = nil, criteria: Criteria? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
 /// Compatibility for dictionary variables, which use sorted keys.
 @attached(peer)
@@ -56,20 +56,20 @@ public func choiceCriteria<Label: CaseIterable & RawRepresentable>(for type: Lab
 
 /// Used by enum-backed questions. Explicit criteria preserve insertion order;
 /// omitted criteria include every enum case in `allCases` order with null descriptions.
-public func orderedChoiceCriteria<Label: CaseIterable & RawRepresentable>(
-    for type: Label.Type, descriptions: OrderedCriteria? = nil
-) -> OrderedCriteria where Label.RawValue == String {
-    descriptions ?? OrderedCriteria(pairs: Label.allCases.map { ($0.rawValue, .null) })
+public func makeChoiceCriteria<Label: CaseIterable & RawRepresentable>(
+    for type: Label.Type, descriptions: Criteria? = nil
+) -> Criteria where Label.RawValue == String {
+    descriptions ?? Criteria(pairs: Label.allCases.map { ($0.rawValue, .null) })
 }
 
 /// Compatibility for dictionary variables, preserving their subset in enum order.
 @_disfavoredOverload
-public func orderedChoiceCriteria<Label: CaseIterable & RawRepresentable>(
+public func makeChoiceCriteria<Label: CaseIterable & RawRepresentable>(
     for type: Label.Type, descriptions: [String: JSONValue]?
-) -> OrderedCriteria where Label.RawValue == String {
+) -> Criteria where Label.RawValue == String {
     let labels = Label.allCases.map { $0.rawValue }
     let descriptions = choiceCriteria(for: type, descriptions: descriptions)
     let known = Set(labels)
     let keys = labels.filter { descriptions[$0] != nil } + descriptions.keys.filter { !known.contains($0) }.sorted()
-    return OrderedCriteria(pairs: keys.map { ($0, descriptions[$0]!) })
+    return Criteria(pairs: keys.map { ($0, descriptions[$0]!) })
 }

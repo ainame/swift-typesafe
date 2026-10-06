@@ -66,10 +66,10 @@ func criteriaOrderReachesRequestBytes(api: String) async throws {
     #expect(text.contains(#""criteria":{"zzz":null,"aaa":null,"other":null}"#))
 }
 
-@Test func orderedCriteriaSupportsExplicitBuilderOrderAndEscapedJSON() async throws {
+@Test func criteriaSupportsExplicitBuilderOrderAndEscapedJSON() async throws {
     let pairs: KeyValuePairs<String, JSONValue> = ["other": ["text": "Line\n\"quoted\""], "billing": nil]
-    let criteria = OrderedCriteria(pairs)
-    #expect(OrderedCriteria(pairs: pairs.map { ($0.key, $0.value) }) == criteria)
+    let criteria = Criteria(pairs)
+    #expect(Criteria(pairs: pairs.map { ($0.key, $0.value) }) == criteria)
     let mock = MockTransport()
     _ = try await client(mock).systemOne(state: "s", questions: [
         "choice": Choice<Category>(criteria: criteria).question,
@@ -138,16 +138,16 @@ func dictionaryVariablesRemainSupportedWithStableOrder(api: String) async throws
     #expect(json["questions"]?["emptyChoice"]?["criteria"] == .object([:]))
 }
 
-private let optionalOrderedNoul: OrderedCriteria? = ["true": "Yes", "false": "No"]
+private let optionalNoulCriteria: Criteria? = ["true": "Yes", "false": "No"]
 
 @QuestionSet
-private struct OptionalOrderedQuestions {
-    @Noul(criteria: optionalOrderedNoul) var spam: Double
+private struct OptionalCriteriaQuestions {
+    @Noul(criteria: optionalNoulCriteria) var spam: Double
 }
 
-@Test func macroAcceptsOptionalOrderedCriteria() async throws {
+@Test func macroAcceptsOptionalCriteria() async throws {
     let mock = MockTransport { _, _ in response(orderedFixture) }
-    _ = try await client(mock).systemOne(state: "s", questions: OptionalOrderedQuestions.self)
+    _ = try await client(mock).systemOne(state: "s", questions: OptionalCriteriaQuestions.self)
     let request = try #require(await mock.requests.first)
     let text = String(decoding: try #require(request.body), as: UTF8.self)
     #expect(text.contains(#""criteria":{"true":"Yes","false":"No"}"#))

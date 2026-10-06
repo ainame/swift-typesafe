@@ -2,8 +2,8 @@ import Foundation
 
 /// Dynamic questions. Omitted optional arguments are not sent; use `.raw` for explicit nulls.
 public enum Question: Sendable, Equatable, Encodable {
-    case noul(instructions: JSONValue? = nil, criteria: OrderedCriteria? = nil)
-    case choice(instructions: JSONValue? = nil, criteria: OrderedCriteria)
+    case noul(instructions: JSONValue? = nil, criteria: Criteria? = nil)
+    case choice(instructions: JSONValue? = nil, criteria: Criteria)
     case score(instructions: JSONValue? = nil, criteria: [JSONValue])
     /// Forward-compatible question object; unknown nonempty type tags pass through to the API.
     case raw([String: JSONValue])
@@ -15,7 +15,7 @@ public enum Question: Sendable, Equatable, Encodable {
         instructions: JSONValue? = nil, criteria: Descriptions
     ) -> Self where Descriptions.Element == (key: String, value: JSONValue) {
         let dictionary = Dictionary(criteria.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last })
-        return .choice(instructions: instructions, criteria: OrderedCriteria(dictionary: dictionary))
+        return .choice(instructions: instructions, criteria: Criteria(dictionary: dictionary))
     }
 
     /// Compatibility for optional dictionary variables, with sorted keys.
@@ -24,7 +24,7 @@ public enum Question: Sendable, Equatable, Encodable {
         instructions: JSONValue? = nil, criteria: Descriptions?
     ) -> Self where Descriptions.Element == (key: String, value: JSONValue) {
         let ordered = criteria.map { entries in
-            OrderedCriteria(dictionary: Dictionary(entries.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last }))
+            Criteria(dictionary: Dictionary(entries.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last }))
         }
         return .noul(instructions: instructions, criteria: ordered)
     }
