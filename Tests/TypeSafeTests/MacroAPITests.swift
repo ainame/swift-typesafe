@@ -48,7 +48,7 @@ struct DescribedChoices {
 
 @Test func macroSupportsDescriptionsAndEscapedNames() async throws {
     #expect(PublicQuestions.questions["default"] == .noul(instructions: "Enabled?", criteria: ["true": "yes", "false": "no"]))
-    #expect(DescribedChoices.questions["tone"] == .choice(instructions: "Tone?", criteria: ["friendly": "Welcoming", "hostile": nil]))
+    #expect(DescribedChoices.questions["tone"] == .choice(instructions: "Tone?", orderedCriteria: ["friendly": "Welcoming", "hostile": nil]))
     let result = try await client().systemOne(state: "hi", questions: DescribedChoices.self)
     #expect(result.answers.tone.choice == .friendly)
 }

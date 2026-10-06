@@ -3,6 +3,12 @@
 Versions follow [Semantic Versioning](https://semver.org). MAJOR.MINOR follows the [Python SDK](https://github.com/typesafe-ai/typesafe-sdk-python) release it implements. PATCH is owned by this package, so it can differ from the Python patch number. See [Versioning](README.md#versioning).
 Each entry names the Python release it implements. Upstream minor releases can include breaking changes while the SDK is 0.x.
 
+## Unreleased
+
+### Fixed
+
+- Preserve enum-backed Choice criteria in `allCases` order in outgoing requests. Add `OrderedCriteria` and `orderedCriteria:` inputs for explicit Choice and Noul option order across dynamic, builder, and Noul macro APIs. Existing dictionary criteria remain supported without an ordering guarantee. [#8](https://github.com/ainame/swift-typesafe/issues/8)
+
 ## 0.7.3 - 2026-09-30
 
 Implements Python SDK 0.7.2. Its upstream patch adds an optional HTTP/2 package extra and documentation, with no runtime or schema changes.

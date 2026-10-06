@@ -99,17 +99,7 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         state: JSONValue, questions: [String: Question], model: String? = nil,
         extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions()
     ) async throws -> SystemOneResponse {
-        guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
-        guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
-        for (name, question) in questions { try question.validate(name: name) }
-        var body: [String: JSONValue] = [
-            "state": state, "model": .string(model ?? self.model),
-            "questions": .object(questions.mapValues { .object($0.payload) }),
-        ]
-        body.merge(extraBody, uniquingKeysWith: { _, last in last })
-        let data: Data
-        do { data = try JSONEncoder().encode(body) }
-        catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
+        let data = try encodeSystemOneRequest(state: state, questions: questions, model: model, extraBody: extraBody)
         return try await execute(method: "POST", path: "/v1/systemone", body: data, options: options) { raw, endpoint in
             var result: SystemOneResponse = try Self.decode(raw, endpoint: endpoint)
             if !loggingDisabled {
@@ -136,20 +126,25 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
                 state: state, questions: questions, model: model, extraBody: extraBody, options: options
             ) as! Response
         }
-        guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
-        guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
-        for (name, question) in questions { try question.validate(name: name) }
-        var body: [String: JSONValue] = [
-            "state": state, "model": .string(model ?? self.model),
-            "questions": .object(questions.mapValues { .object($0.payload) }),
-        ]
-        body.merge(extraBody, uniquingKeysWith: { _, last in last })
-        let data: Data
-        do { data = try JSONEncoder().encode(body) }
-        catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
+        let data = try encodeSystemOneRequest(state: state, questions: questions, model: model, extraBody: extraBody)
         return try await execute(method: "POST", path: "/v1/systemone", body: data, options: options) { raw, endpoint in
             try Self.decode(raw, endpoint: endpoint)
         }
+    }
+
+    private func encodeSystemOneRequest(
+        state: JSONValue, questions: [String: Question], model: String?, extraBody: [String: JSONValue]
+    ) throws -> Data {
+        guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
+        guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
+        for (name, question) in questions { try question.validate(name: name) }
+        var body: [String: RequestJSON] = [
+            "state": .value(state), "model": .value(.string(model ?? self.model)),
+            "questions": .object(questions.mapValues { $0.wirePayload }),
+        ]
+        body.merge(extraBody.mapValues { .value($0) }, uniquingKeysWith: { _, last in last })
+        do { return try RequestJSON.object(body).encoded() }
+        catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
     }
 
     private func execute<Result: Sendable>(

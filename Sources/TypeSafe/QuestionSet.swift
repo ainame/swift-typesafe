@@ -10,13 +10,17 @@ public protocol QuestionSet {
 @attached(extension, conformances: QuestionSet)
 public macro QuestionSet() = #externalMacro(module: "TypeSafeMacros", type: "QuestionSetMacro")
 
-/// Marks a String-backed, CaseIterable choice enum property. Omitted criteria include all enum cases.
+/// Marks a String-backed, CaseIterable choice enum property. Criteria follow `allCases` order.
 @attached(peer)
 public macro Choice(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
 /// Marks a Double property representing a yes probability.
 @attached(peer)
 public macro Noul(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
+
+/// Marks a yes probability with explicitly ordered criteria.
+@attached(peer)
+public macro Noul(_ instructions: JSONValue? = nil, orderedCriteria: OrderedCriteria) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
 /// Marks a Double property representing an expected score (which may be fractional).
 @attached(peer)
@@ -44,4 +48,17 @@ extension TypeSafeClient {
 /// Used by generated code to construct criteria without exposing type erasure.
 public func choiceCriteria<Label: CaseIterable & RawRepresentable>(for type: Label.Type, descriptions: [String: JSONValue]? = nil) -> [String: JSONValue] where Label.RawValue == String {
     descriptions ?? Dictionary(Label.allCases.map { ($0.rawValue, JSONValue.null) }, uniquingKeysWith: { _, last in last })
+}
+
+/// Used by enum-backed questions to send supplied options in `allCases` order.
+/// Omitted descriptions include all cases with null descriptions. Supplied descriptions
+/// retain their existing subset; keys outside the enum follow in sorted order.
+public func orderedChoiceCriteria<Label: CaseIterable & RawRepresentable>(
+    for type: Label.Type, descriptions: [String: JSONValue]? = nil
+) -> OrderedCriteria where Label.RawValue == String {
+    let labels = Label.allCases.map { $0.rawValue }
+    let descriptions = choiceCriteria(for: type, descriptions: descriptions)
+    let known = Set(labels)
+    let keys = labels.filter { descriptions[$0] != nil } + descriptions.keys.filter { !known.contains($0) }.sorted()
+    return OrderedCriteria(entries: keys.map { .init(key: $0, value: descriptions[$0]!) })
 }

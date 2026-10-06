@@ -32,6 +32,12 @@ The primary reference is `vendor/typesafe-sdk-python` at `f078f1e208a0d885154dc7
 
 The native adapter tests exercise the URLSession-backed client on macOS and the AsyncHTTPClient-backed client on Linux under the default `URLSession` trait. The `AsyncHTTPClient` trait selects AsyncHTTPClient on every platform. They include chunked POST requests, model listing, actual retry headers, timeout before headers and during response bodies, cancellation, and the response size limit.
 
+## Criteria ordering
+
+Python dictionaries preserve insertion order. Swift enum-backed `@Choice` and `Choice<Label>(criteria:)` requests preserve `allCases` order, with supplied descriptions retaining their subset of keys. Description keys outside the enum follow in sorted order. Explicit `orderedCriteria:` inputs preserve insertion order for Choice and Noul in the shared request serializer, including the custom response-model path. Regression tests inspect request bytes because decoding into a dictionary discards order.
+
+Dynamic `criteria:` dictionaries, raw JSON objects, and `extraBody` objects have no key-order guarantee. Use `OrderedCriteria` when option order matters. Its repeated keys retain their first position and final description. Direct Foundation Codable encoding does not guarantee object-key order; the ordering contract applies to `TypeSafeClient` requests.
+
 ## Deliberate Swift adaptations
 
 - The client is async-only. Swift task cancellation replaces Python task cancellation and JS abort signals. Synchronous wrappers, Python pickling, and cached-object identity are language/runtime details rather than ported APIs.

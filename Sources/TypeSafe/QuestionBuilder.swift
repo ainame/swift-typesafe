@@ -5,12 +5,17 @@ public protocol TypedQuestion: Sendable {
     func decodeAnswer(from response: SystemOneResponse, named name: String) throws -> Answer
 }
 
-/// An enum-valued choice. Omitted criteria include every case with a null description.
+/// An enum-valued choice. Dictionary criteria follow `Label.allCases` order.
+/// Omitted criteria include every case with a null description. Use `orderedCriteria:` to choose another order.
 public struct Choice<Label: CaseIterable & RawRepresentable & Hashable & Sendable>: TypedQuestion where Label.RawValue == String {
     public let question: Question
 
     public init(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil) {
-        question = .choice(instructions: instructions, criteria: choiceCriteria(for: Label.self, descriptions: criteria))
+        question = .choice(instructions: instructions, orderedCriteria: orderedChoiceCriteria(for: Label.self, descriptions: criteria))
+    }
+
+    public init(_ instructions: JSONValue? = nil, orderedCriteria: OrderedCriteria) {
+        question = .choice(instructions: instructions, orderedCriteria: orderedCriteria)
     }
 
     public func decodeAnswer(from response: SystemOneResponse, named name: String) throws -> ChoiceAnswer<Label> {
@@ -24,6 +29,10 @@ public struct Noul: TypedQuestion {
 
     public init(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil) {
         question = .noul(instructions: instructions, criteria: criteria)
+    }
+
+    public init(_ instructions: JSONValue? = nil, orderedCriteria: OrderedCriteria) {
+        question = .noul(instructions: instructions, orderedCriteria: orderedCriteria)
     }
 
     public func decodeAnswer(from response: SystemOneResponse, named name: String) throws -> NoulAnswer {

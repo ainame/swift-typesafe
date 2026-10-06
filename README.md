@@ -84,7 +84,7 @@ let result = try await client.systemOne(
     questions: [
         "category": .choice(
             instructions: "What is this ticket about?",
-            criteria: ["billing": nil, "technical": nil, "other": nil]
+            orderedCriteria: ["billing": nil, "technical": nil, "other": nil]
         ),
         "urgent": .noul(instructions: "Does this need urgent attention?")
     ]
@@ -95,6 +95,10 @@ print(result.nouls["urgent"]?.noul)
 ```
 
 The dynamic API accepts questions built at runtime and returns answers by name.
+
+Option order can affect the model's probabilities. `@Choice` and `Choice<Label>(criteria:)` send options in `Label.allCases` order, including when descriptions are supplied. For dynamic choices and Noul criteria, use `orderedCriteria:` with an `OrderedCriteria` dictionary literal, `OrderedCriteria(keyValuePairs)`, or `OrderedCriteria(pairs: entries)` for a runtime array of `(String, JSONValue)` pairs. `Choice<Label>(orderedCriteria:)`, `Noul(orderedCriteria:)`, and `@Noul(orderedCriteria:)` also accept explicit order. Repeated keys keep their first position and last description.
+
+The existing dynamic `criteria:` dictionary inputs remain supported, but Swift dictionaries have no ordering guarantee. `.raw` and criteria supplied through `extraBody` also use ordinary JSON dictionaries. Ordered criteria retain their order in requests sent by `TypeSafeClient`; Foundation's `JSONEncoder` does not guarantee key order when encoding `Question` directly.
 
 ### Models and response metadata
 
