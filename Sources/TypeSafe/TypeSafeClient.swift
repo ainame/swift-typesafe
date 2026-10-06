@@ -138,12 +138,8 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
         guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
         for (name, question) in questions { try question.validate(name: name) }
-        var body: [String: RequestJSON] = [
-            "state": .value(state), "model": .value(.string(model ?? self.model)),
-            "questions": .object(questions.mapValues { $0.wirePayload }),
-        ]
-        body.merge(extraBody.mapValues { .value($0) }, uniquingKeysWith: { _, last in last })
-        do { return try RequestJSON.object(body).encoded() }
+        var encoder = RequestBodyEncoder()
+        do { return try encoder.encode(state: state, model: model ?? self.model, questions: questions, extraBody: extraBody) }
         catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
     }
 

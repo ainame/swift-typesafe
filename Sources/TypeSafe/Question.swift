@@ -51,18 +51,6 @@ public enum Question: Sendable, Equatable, Encodable {
         return result
     }
 
-    var wirePayload: RequestJSON {
-        var fields = payload.mapValues { RequestJSON.value($0) }
-        switch self {
-        case .choice(_, let criteria):
-            fields["criteria"] = .orderedObject(criteria)
-        case .noul(_, let criteria):
-            if let criteria { fields["criteria"] = .orderedObject(criteria) }
-        default: break
-        }
-        return .object(fields)
-    }
-
     func validate(name: String) throws {
         let body = payload
         guard let type = body["type"]?.stringValue, !type.isEmpty else {
