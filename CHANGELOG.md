@@ -3,11 +3,21 @@
 Versions follow [Semantic Versioning](https://semver.org). MAJOR.MINOR follows the [Python SDK](https://github.com/typesafe-ai/typesafe-sdk-python) release it implements. PATCH is owned by this package, so it can differ from the Python patch number. See [Versioning](README.md#versioning).
 Each entry names the Python release it implements. Upstream minor releases can include breaking changes while the SDK is 0.x.
 
-## Unreleased
+## 0.7.4 - 2026-10-08
+
+Implements Python SDK 0.7.2. This is a Swift-only patch release.
+
+### Added
+
+- Add `Criteria` for runtime ordered Choice and Noul options, with initializers for key-value pairs and arrays of pairs. Repeated keys retain their first position and final description. [#9](https://github.com/ainame/swift-typesafe/pull/9)
 
 ### Fixed
 
-- Preserve Choice and Noul `criteria:` literals in their written order across dynamic, macro, and builder APIs. Omitted enum-backed Choice criteria follow `allCases`. Add `Criteria` for runtime ordered entries; existing dictionary variables remain supported with deterministic ordering. [#8](https://github.com/ainame/swift-typesafe/issues/8)
+- Preserve Choice and Noul `criteria:` literals in their written order across dynamic, macro, builder, and custom response-model requests. Omitted enum-backed Choice criteria follow `allCases`; existing dictionary variables use deterministic ordering. [#9](https://github.com/ainame/swift-typesafe/pull/9)
+
+### Changed
+
+- `Question.choice` and `.noul` now store `Criteria` rather than dictionaries. Existing dictionary constructor calls remain supported, but code extracting their associated values as dictionaries requires adaptation. The ordering guarantee applies to client requests; direct Foundation Codable encoding and raw or extra-body JSON objects remain outside it. [#9](https://github.com/ainame/swift-typesafe/pull/9)
 
 ## 0.7.3 - 2026-09-30
 

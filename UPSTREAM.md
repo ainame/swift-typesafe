@@ -14,6 +14,7 @@ MAJOR.MINOR follows the Python SDK release; PATCH belongs to this package (see [
 
 | Swift release | Python SDK | Notes |
 | --- | --- | --- |
+| 0.7.4 | 0.7.2 | Swift-only: preserve Choice and Noul criteria order |
 | 0.7.3 | 0.7.2 | Upstream packaging and documentation sync; no runtime change |
 | 0.7.2 | 0.7.1 | Swift-only: HTTP backend package traits and package-owned patch numbering |
 | 0.7.1 | 0.7.1 | Upstream sync |
