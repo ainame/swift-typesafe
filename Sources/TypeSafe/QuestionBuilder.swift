@@ -5,12 +5,19 @@ public protocol TypedQuestion: Sendable {
     func decodeAnswer(from response: SystemOneResponse, named name: String) throws -> Answer
 }
 
-/// An enum-valued choice. Omitted criteria include every case with a null description.
+/// An enum-valued choice. Omitted criteria follow `Label.allCases` order with null descriptions.
+/// Supplied criteria preserve their written order.
 public struct Choice<Label: CaseIterable & RawRepresentable & Hashable & Sendable>: TypedQuestion where Label.RawValue == String {
     public let question: Question
 
-    public init(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil) {
-        question = .choice(instructions: instructions, criteria: choiceCriteria(for: Label.self, descriptions: criteria))
+    public init(_ instructions: JSONValue? = nil, criteria: Criteria? = nil) {
+        question = .choice(instructions: instructions, criteria: makeChoiceCriteria(for: Label.self, descriptions: criteria))
+    }
+
+    /// Dictionary variables follow enum order, with extra keys sorted after known cases.
+    @_disfavoredOverload
+    public init(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]?) {
+        question = .choice(instructions: instructions, criteria: makeChoiceCriteria(for: Label.self, descriptions: criteria))
     }
 
     public func decodeAnswer(from response: SystemOneResponse, named name: String) throws -> ChoiceAnswer<Label> {
@@ -22,7 +29,13 @@ public struct Choice<Label: CaseIterable & RawRepresentable & Hashable & Sendabl
 public struct Noul: TypedQuestion {
     public let question: Question
 
-    public init(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil) {
+    public init(_ instructions: JSONValue? = nil, criteria: Criteria? = nil) {
+        question = .noul(instructions: instructions, criteria: criteria)
+    }
+
+    /// Dictionary variables use sorted keys; literals preserve their written order.
+    @_disfavoredOverload
+    public init(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]?) {
         question = .noul(instructions: instructions, criteria: criteria)
     }
 

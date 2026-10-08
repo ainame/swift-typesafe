@@ -75,7 +75,7 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
             let decode: String
             switch kind {
             case "Choice":
-                question = ".choice(instructions: \(instructions), criteria: TypeSafe.choiceCriteria(for: \(valueType).self, descriptions: \(criteria ?? "nil")))"
+                question = ".choice(instructions: \(instructions), criteria: TypeSafe.makeChoiceCriteria(for: \(valueType).self, descriptions: \(criteria ?? "nil")))"
                 answerType = "TypeSafe.ChoiceAnswer<\(valueType)>"
                 decode = "try response.choice(named: \(String(reflecting: name)), as: \(valueType).self)"
             case "Score":
@@ -84,7 +84,7 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
                 answerType = "TypeSafe.ScoreAnswer"
                 decode = "try response.score(named: \(String(reflecting: name)))"
             default:
-                question = ".noul(instructions: \(instructions), criteria: \(criteria ?? "nil"))"
+                question = "TypeSafe.Noul(\(instructions), criteria: \(criteria ?? "nil")).question"
                 answerType = "TypeSafe.NoulAnswer"
                 decode = "try response.noul(named: \(String(reflecting: name)))"
             }

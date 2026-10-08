@@ -2,11 +2,32 @@ import Foundation
 
 /// Dynamic questions. Omitted optional arguments are not sent; use `.raw` for explicit nulls.
 public enum Question: Sendable, Equatable, Encodable {
-    case noul(instructions: JSONValue? = nil, criteria: [String: JSONValue]? = nil)
-    case choice(instructions: JSONValue? = nil, criteria: [String: JSONValue])
+    case noul(instructions: JSONValue? = nil, criteria: Criteria? = nil)
+    case choice(instructions: JSONValue? = nil, criteria: Criteria)
     case score(instructions: JSONValue? = nil, criteria: [JSONValue])
     /// Forward-compatible question object; unknown nonempty type tags pass through to the API.
     case raw([String: JSONValue])
+
+    /// Compatibility for dictionary variables. Keys are sorted because their insertion order is unavailable.
+    // The generic fallback keeps Swift from preferring Dictionary for an untyped literal.
+    @_disfavoredOverload
+    public static func choice<Descriptions: Collection>(
+        instructions: JSONValue? = nil, criteria: Descriptions
+    ) -> Self where Descriptions.Element == (key: String, value: JSONValue) {
+        let dictionary = Dictionary(criteria.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last })
+        return .choice(instructions: instructions, criteria: Criteria(dictionary: dictionary))
+    }
+
+    /// Compatibility for optional dictionary variables, with sorted keys.
+    @_disfavoredOverload
+    public static func noul<Descriptions: Collection>(
+        instructions: JSONValue? = nil, criteria: Descriptions?
+    ) -> Self where Descriptions.Element == (key: String, value: JSONValue) {
+        let ordered = criteria.map { entries in
+            Criteria(dictionary: Dictionary(entries.map { ($0.key, $0.value) }, uniquingKeysWith: { _, last in last }))
+        }
+        return .noul(instructions: instructions, criteria: ordered)
+    }
 
     public func encode(to encoder: any Encoder) throws { try payload.encode(to: encoder) }
 
@@ -18,10 +39,10 @@ public enum Question: Sendable, Equatable, Encodable {
         case .noul(let value, let criteria):
             instructions = value
             result = ["type": "noul"]
-            if let criteria { result["criteria"] = .object(criteria) }
+            if let criteria { result["criteria"] = .object(criteria.dictionary) }
         case .choice(let value, let criteria):
             instructions = value
-            result = ["type": "choice", "criteria": .object(criteria)]
+            result = ["type": "choice", "criteria": .object(criteria.dictionary)]
         case .score(let value, let criteria):
             instructions = value
             result = ["type": "score", "criteria": .array(criteria)]

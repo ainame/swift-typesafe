@@ -96,6 +96,12 @@ print(result.nouls["urgent"]?.noul)
 
 The dynamic API accepts questions built at runtime and returns answers by name.
 
+Option order can affect the model's probabilities. Choice and Noul `criteria:` dictionary literals preserve their written order by default, including in macros and builders. When choice criteria are omitted, `@Choice` and `Choice<Label>` send options in `Label.allCases` order.
+
+For runtime options with a known order, pass `Criteria(keyValuePairs)` or `Criteria(pairs: entries)` for an array of `(String, JSONValue)` pairs to `criteria:`. Repeated keys keep their first position and last description. Existing `[String: JSONValue]` variables remain accepted: dynamic Choice and Noul sort their keys; enum-backed choices use enum order with extra keys sorted afterward. A dictionary variable has already lost its insertion order, so use `Criteria` to retain a particular sequence.
+
+This ordering guarantee applies to requests sent by `TypeSafeClient`. Raw JSON and `extraBody` objects use ordinary dictionaries, and direct Foundation `JSONEncoder` encoding of `Question` does not guarantee object-key order.
+
 ### Models and response metadata
 
 ```swift
