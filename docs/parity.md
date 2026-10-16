@@ -74,7 +74,7 @@ Raw JSON and `extraBody` objects have no key-order guarantee. Direct Foundation 
 
 ## Verification boundaries
 
-All automated tests use fixtures or loopback HTTP servers. They establish SDK behavior without spending TypeSafe credits. The example compiles but is not executed against the production API without credentials. Hosted CI and Apple mobile simulator/device runs are distinct from local macOS and Linux verification; do not describe them as completed unless their results have been checked.
+Automated tests use fixtures or loopback HTTP servers and do not spend TypeSafe credits. The example executable makes real API calls with credentials; its `--images` mode explicitly runs six image/Box scenarios against `jev-1.14.0`. Hosted CI and Apple mobile simulator/device runs are distinct from local macOS and Linux verification; do not describe them as completed unless their results have been checked.
 
 ## Verification record
 
@@ -83,7 +83,8 @@ All automated tests use fixtures or loopback HTTP servers. They establish SDK be
 - The default backend suite also passed with `DISPATCH_COOPERATIVE_POOL_STRICT=1`.
 - The external Examples package compiled successfully, including direct Image state, Box macro, and scoped attachment calls.
 - `git diff --check` passed.
-- Local Linux verification was attempted in Docker, but the Swift image could not be unpacked after the host exhausted disk space; no local Linux tests ran. Hosted CI results are tracked separately on [PR #10](https://github.com/ainame/swift-typesafe/pull/10). Production API calls and Apple mobile simulator/device testing were not performed.
+- On 2026-10-16, `Example --images` passed all six live requests against `jev-1.14.0`: loaded Data/builder, file/macro, and scoped reference/dynamic, each with zstd enabled and disabled. Returned edges were within 0.01 of the known synthetic square bounds; red-square Noul values were 0.97–0.98. This validates these smoke scenarios, not general image accuracy.
+- Local Linux verification was attempted in Docker, but the Swift image could not be unpacked after the host exhausted disk space; no local Linux tests ran. Hosted CI results are tracked separately on [PR #10](https://github.com/ainame/swift-typesafe/pull/10). Apple mobile simulator/device testing was not performed.
 
 ## Image request memory measurement
 
