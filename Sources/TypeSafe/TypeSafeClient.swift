@@ -14,11 +14,13 @@ public struct RequestOptions: Sendable {
 public struct TypeSafeClient: Sendable, CustomStringConvertible {
     /// The Python SDK version this release implements, sent in SDK identification headers.
     /// It can differ from this package's release tag, whose PATCH is owned by the Swift package.
-    public static let version = "0.7.2"
+    public static let version = "0.7.5"
     public static let defaultBaseURL = "https://api.typesafe.ai"
     public static let defaultModel = "jev-latest"
     public static let defaultTimeout = 10.0
 
+    let attachedImages = AttachedImages()
+    public let compression: RequestCompression
     private let apiKey: String
     public let baseURL: String
     public let model: String
@@ -33,7 +35,7 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
     public init(
         apiKey: String? = nil, baseURL: String? = nil, model: String? = nil,
         timeout: Double = Self.defaultTimeout, retry: RetryPolicy = RetryPolicy(),
-        headers: [String: String] = [:], transport: any TypeSafeTransport = HTTPClientTransport(),
+        headers: [String: String] = [:], compression: RequestCompression = .zstd, transport: any TypeSafeTransport = HTTPClientTransport(),
         logger: Logger? = nil, environment: [String: String] = ProcessInfo.processInfo.environment
     ) throws {
         func resolve(_ value: String?, _ variable: String, _ fallback: String? = nil) -> String? {
@@ -52,6 +54,7 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         try validateTimeout(timeout)
         try retry.validate()
         self.apiKey = key
+        self.compression = compression
         var base = resolve(baseURL, "TYPESAFE_BASE_URL", Self.defaultBaseURL)!
         while base.hasSuffix("/") { base.removeLast() }
         guard let components = URLComponents(string: base), ["http", "https"].contains(components.scheme?.lowercased() ?? ""),
@@ -97,10 +100,10 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
 
     public func systemOne(
         state: JSONValue, questions: [String: Question], model: String? = nil,
-        extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions()
+        extraBody: [String: JSONValue] = [:], assets: [String: Image] = [:], options: RequestOptions = RequestOptions()
     ) async throws -> SystemOneResponse {
-        let data = try encodeSystemOneRequest(state: state, questions: questions, model: model, extraBody: extraBody)
-        return try await execute(method: "POST", path: "/v1/systemone", body: data, options: options) { raw, endpoint in
+        let body = try await encodeSystemOneRequest(state: state, questions: questions, model: model, extraBody: extraBody, assets: assets)
+        return try await execute(method: "POST", path: "/v1/systemone", body: consume body, options: options) { raw, endpoint in
             var result: SystemOneResponse = try Self.decode(raw, endpoint: endpoint)
             if !loggingDisabled {
                 for (name, type) in result.ignoredAnswerTypes {
@@ -118,35 +121,57 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
     /// `SystemOneResponse`, which additionally exposes validated dynamic answers and HTTP metadata.
     public func systemOne<Response: Decodable & Sendable>(
         state: JSONValue, questions: [String: Question], model: String? = nil,
-        extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions(),
+        extraBody: [String: JSONValue] = [:], assets: [String: Image] = [:], options: RequestOptions = RequestOptions(),
         responseModel: Response.Type
     ) async throws -> Response {
         if Response.self == SystemOneResponse.self {
             return try await systemOne(
-                state: state, questions: questions, model: model, extraBody: extraBody, options: options
+                state: state, questions: questions, model: model, extraBody: extraBody, assets: assets, options: options
             ) as! Response
         }
-        let data = try encodeSystemOneRequest(state: state, questions: questions, model: model, extraBody: extraBody)
-        return try await execute(method: "POST", path: "/v1/systemone", body: data, options: options) { raw, endpoint in
+        let body = try await encodeSystemOneRequest(state: state, questions: questions, model: model, extraBody: extraBody, assets: assets)
+        return try await execute(method: "POST", path: "/v1/systemone", body: consume body, options: options) { raw, endpoint in
             try Self.decode(raw, endpoint: endpoint)
         }
     }
 
     private func encodeSystemOneRequest(
-        state: JSONValue, questions: [String: Question], model: String?, extraBody: [String: JSONValue]
-    ) throws -> Data {
-        guard state.isContent else { throw TypeSafeError.configuration("state must be text, an object, or an array.") }
+        state: JSONValue, questions: [String: Question], model: String?, extraBody: [String: JSONValue], assets: [String: Image]
+    ) async throws -> RequestBody {
+        try Task.checkCancellation()
+        guard state.isContent else { throw TypeSafeError.configuration("state must be text, an image, an object, or an array.") }
         guard !questions.isEmpty else { throw TypeSafeError.configuration("At least one question is required.") }
         for (name, question) in questions { try question.validate(name: name) }
-        var encoder = RequestBodyEncoder()
-        do { return try encoder.encode(state: state, model: model ?? self.model, questions: questions, extraBody: extraBody) }
+        let attached = await attachedImages.snapshot
+        var encoder = RequestBodyEncoder(assets: assets)
+        let json: Data
+        do { json = try encoder.encode(state: state, model: model ?? self.model, questions: questions, extraBody: extraBody) }
         catch { throw TypeSafeError.encoding("The request body could not be encoded as JSON.") }
+        var body = RequestBody(data: json)
+        // An explicit extra-body assets field overrides automatic asset uploads, including file reads.
+        guard extraBody["assets"] == nil else { return body }
+        guard !assets.keys.contains("") else {
+            throw TypeSafeError.configuration("Asset names must be nonempty strings.")
+        }
+        let pending = encoder.pendingAssets(explicit: assets, attached: attached)
+        guard !pending.isEmpty else { return body }
+        let entries = Dictionary(uniqueKeysWithValues: pending.enumerated().map { index, entry in
+            (entry.0, JSONValue.object(["type": "image", "part": .string("asset-\(index)")]))
+        })
+        // Append the asset metadata without re-encoding the ordered criteria in the original JSON.
+        var multipartJSON = Data(json.dropLast())
+        multipartJSON.append(Data(",\"assets\":".utf8))
+        multipartJSON.append(try JSONEncoder().encode(entries))
+        multipartJSON.append(Data("}".utf8))
+        try await body.attach(json: multipartJSON, images: pending)
+        return body
     }
 
     private func execute<Result: Sendable>(
-        method: String, path: String, body: Data?, options: RequestOptions,
+        method: String, path: String, body: consuming RequestBody?, options: RequestOptions,
         parse: @Sendable (RawHTTPResponse, String) throws -> Result
     ) async throws -> Result {
+        try Task.checkCancellation()
         let timeout = options.timeout ?? timeout
         let retry = options.retry ?? retry
         try validateTimeout(timeout)
@@ -165,15 +190,26 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         merged["user-agent"] = "typesafe-sdk/\(Self.version)"
         merged["x-typesafe-sdk"] = "typesafe-sdk/\(Self.version)"
         merged["x-typesafe-runtime"] = "swift/6.4 (\(Self.platform))"
-        if body != nil { merged["content-type"] = "application/json" }
+        let originalLength = body?.byteCount ?? 0
+        let preview = !loggingDisabled && logger.logLevel <= .debug ? body?.preview() : nil
+        let wireBody: RequestBody?
+        switch consume body {
+        case .some(let body):
+            merged["content-type"] = body.contentType
+            if originalLength >= 1024, compression == .zstd {
+                wireBody = try body.compressed()
+                merged["content-encoding"] = "zstd"
+            } else { wireBody = body }
+        case .none: wireBody = nil
+        }
         let started = ContinuousClock.now
         var attempt = 0
         while true {
             try Task.checkCancellation()
             var attemptHeaders = merged
             if attempt > 0 { attemptHeaders["x-typesafe-retry-count"] = String(attempt) }
-            let request = TransportRequest(method: method, url: url, headers: attemptHeaders, body: body, timeout: timeout)
-            logWire("\(endpoint) ->", headers: attemptHeaders, body: body)
+            let request = TransportRequest(method: method, url: url, headers: attemptHeaders, body: wireBody, timeout: timeout)
+            logWire("\(endpoint) ->", headers: attemptHeaders, body: preview, originalLength: originalLength)
             do {
                 let raw = try await send(request)
                 try Task.checkCancellation()
@@ -221,11 +257,11 @@ public struct TypeSafeClient: Sendable, CustomStringConvertible {
         }
     }
 
-    private func logWire(_ message: String, headers: [String: String], body: Data?) {
+    private func logWire(_ message: String, headers: [String: String], body: Data?, originalLength: Int? = nil) {
         guard !loggingDisabled, logger.logLevel <= .debug else { return }
         logger.debug("\(message)", metadata: [
             "headers": .dictionary(headers.mapValuesWithKeys { name, value in .string(Self.isSecret(name) ? "***" : value) }),
-            "body": .string(body.map { String(decoding: $0, as: UTF8.self) } ?? ""),
+            "body": .string(body.map { String(decoding: $0.prefix(4096), as: UTF8.self) + ((originalLength ?? $0.count) > 4096 ? " (+\((originalLength ?? $0.count) - 4096) bytes)" : "") } ?? ""),
         ])
     }
 

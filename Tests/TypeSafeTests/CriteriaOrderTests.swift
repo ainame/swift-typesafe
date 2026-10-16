@@ -126,8 +126,8 @@ func dictionaryVariablesRemainSupportedWithStableOrder(api: String) async throws
     let nilDictionary: [String: JSONValue]? = nil
     let mock = MockTransport()
     _ = try await client(mock).systemOne(state: "s", questions: [
-        "omitted": .noul(), "nil": .noul(criteria: nil), "dictionaryNil": .noul(criteria: nilDictionary),
-        "empty": .noul(criteria: [:]), "emptyChoice": .choice(criteria: [:]),
+        "omitted": .noul(instructions: "?"), "nil": .noul(instructions: "?", criteria: nil), "dictionaryNil": .noul(instructions: "?", criteria: nilDictionary),
+        "empty": .noul(instructions: "?", criteria: [:]),
     ])
     let request = try #require(await mock.requests.first)
     let json = try JSONDecoder().decode(JSONValue.self, from: #require(request.body))
@@ -135,7 +135,6 @@ func dictionaryVariablesRemainSupportedWithStableOrder(api: String) async throws
         #expect(json["questions"]?[name]?["criteria"] == nil)
     }
     #expect(json["questions"]?["empty"]?["criteria"] == .object([:]))
-    #expect(json["questions"]?["emptyChoice"]?["criteria"] == .object([:]))
 }
 
 private let optionalNoulCriteria: Criteria? = ["true": "Yes", "false": "No"]

@@ -4,6 +4,7 @@ import Foundation
 public enum Question: Sendable, Equatable, Encodable {
     case noul(instructions: JSONValue? = nil, criteria: Criteria? = nil)
     case choice(instructions: JSONValue? = nil, criteria: Criteria)
+    case box(instructions: JSONValue? = nil)
     case score(instructions: JSONValue? = nil, criteria: [JSONValue])
     /// Forward-compatible question object; unknown nonempty type tags pass through to the API.
     case raw([String: JSONValue])
@@ -43,6 +44,9 @@ public enum Question: Sendable, Equatable, Encodable {
         case .choice(let value, let criteria):
             instructions = value
             result = ["type": "choice", "criteria": .object(criteria.dictionary)]
+        case .box(let value):
+            instructions = value
+            result = ["type": "box"]
         case .score(let value, let criteria):
             instructions = value
             result = ["type": "score", "criteria": .array(criteria)]
@@ -51,25 +55,64 @@ public enum Question: Sendable, Equatable, Encodable {
         return result
     }
 
+    func collectImages(into images: inout [String: Image]) {
+        let instructions: JSONValue?
+        switch self {
+        case .raw(let fields):
+            for value in fields.values { value.collectImages(into: &images) }
+            return
+        case .noul(let value, let criteria):
+            instructions = value
+            if let criteria {
+                for entry in criteria.entries { entry.value.collectImages(into: &images) }
+            }
+        case .choice(let value, let criteria):
+            instructions = value
+            for entry in criteria.entries { entry.value.collectImages(into: &images) }
+        case .score(let value, let criteria):
+            instructions = value
+            for criterion in criteria { criterion.collectImages(into: &images) }
+        case .box(let value): instructions = value
+        }
+        instructions?.collectImages(into: &images)
+    }
+
     func validate(name: String) throws {
         let body = payload
         guard let type = body["type"]?.stringValue, !type.isEmpty else {
             throw TypeSafeError.configuration("Question '\(name)' requires a nonempty string type.")
         }
+        if type == "noul" {
+            let criteria = body["criteria"]
+            if let criteria, criteria != .null {
+                guard case .object = criteria else {
+                    throw TypeSafeError.configuration("Noul question '\(name)' criteria must be an object.")
+                }
+            }
+            let described: Bool
+            if case .object(let entries) = criteria { described = entries.values.contains { $0 != .null } }
+            else { described = false }
+            if (body["instructions"] == nil || body["instructions"] == .null) && !described {
+                throw TypeSafeError.configuration("Noul question '\(name)' requires instructions or a described outcome.")
+            }
+        }
         if type == "choice" || type == "score" {
             guard let criteria = body["criteria"] else {
                 throw TypeSafeError.configuration("Question '\(name)' requires criteria.")
             }
-            if type == "score" {
-                let empty: Bool
-                switch criteria {
-                case .array(let values): empty = values.isEmpty
-                case .object(let values): empty = values.isEmpty
-                case .string(let value): empty = value.isEmpty
-                case .null: empty = true
-                default: empty = false
-                }
-                if empty { throw TypeSafeError.configuration("Score question '\(name)' requires at least one criterion.") }
+            let empty: Bool
+            switch criteria {
+            case .array(let values): empty = values.isEmpty
+            case .object(let values): empty = values.isEmpty
+            case .string(let value): empty = value.isEmpty
+            case .bool(let value): empty = !value
+            case .integer(let value): empty = value == 0
+            case .number(let value): empty = value == 0
+            case .null: empty = true
+            case .image: empty = false
+            }
+            if empty {
+                throw TypeSafeError.configuration("\(type == "choice" ? "Choice" : "Score") question '\(name)' requires at least one criterion.")
             }
         }
     }

@@ -1,6 +1,6 @@
 # swift-typesafe
 
-Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.2 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
+Swift 6.4 SDK for [TypeSafe AI](https://typesafe.ai), following the Python SDK's 0.7.5 API. Supports macOS 26+, iOS 26+, tvOS 26+, watchOS 26+, visionOS 26+, and Linux.
 
 Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-proposal) package, pinned to 0.2.1. The proposal may change; its Swift 6.4 and OS requirements apply to this SDK.
 
@@ -121,10 +121,49 @@ struct SpamResponse: Decodable, Sendable {
 }
 
 let typed = try await client.systemOne(
-    state: "Buy now!", questions: ["spam": .noul()], responseModel: SpamResponse.self
+    state: "Buy now!", questions: ["spam": .noul(instructions: "Spam?")], responseModel: SpamResponse.self
 )
 print(typed.answers.spam.noul)
 ```
+
+### Images and boxes
+
+These APIs are included in the upcoming Swift 0.7.5 release.
+
+```swift
+import Foundation
+
+let photo = Image(fileURL: URL(fileURLWithPath: "product.jpg"))
+let located = try await client.systemOne(state: photo, model: "jev-preview") {
+    Box("The product")
+}
+print(located.answers.box) // BoxCoordinates: top, bottom, left, right
+```
+
+Already loaded the image? Wrap its bytes in `Image` and pass it as `state` with any question API:
+
+```swift
+let photo = Image(data: imageData)
+let located = try await client.systemOne(state: photo, model: "jev-preview") {
+    Box("The product")
+}
+```
+
+`Data` means encoded image file bytes, such as PNG or JPEG. For structured content, use `state: ["photo": .image(imageData)]`. The same `.image(data)` form works in instructions and criteria. Keep an `Image` value when reusing one image under multiple references or attaching it to interpolated text.
+
+Use `Image(data:)`, `Image(fileURL:)`, or `Image.fromBase64(_:)`. Put `.image(photo)` anywhere in state, instructions, or criteria. File URLs are read when preparing each new request; retries reuse the prepared bytes. To reuse the same bytes across requests, load `Data` once and use `Image(data:)`. Box coordinates are fractions of image height and width; `confidence` can be nil. Dynamic calls use `.box(instructions:)` and `result.boxes`; reusable schemas use `@Box("The product") var product: BoxCoordinates`.
+
+For named references, pass `assets: ["<photo>": photo]` and use `<photo>` in content. To interpolate an image into text, attach it for the duration of the call:
+
+```swift
+let checked = try await client.withAttachedAssets([photo]) {
+    try await client.systemOne(state: .string("Inspect \(photo)")) {
+        Noul("Is the product damaged?")
+    }
+}
+```
+
+Attachments are shared by calls on the same client while the scope is active. Unattached image references remain plain text, following Python. An explicit `extraBody["assets"]` overrides automatic uploads.
 
 ## Configuration and retries
 
@@ -151,6 +190,10 @@ Retries follow Python: two retries by default for connection errors, timeouts, H
 The retry budget prevents scheduling an attempt whose delay reaches or exceeds the budget; it does not cut off an attempt already running. Swift's request timeout covers the entire attempt, including the response body. Task cancellation stops requests and backoff and is never retried.
 
 SDK authentication, identification, and retry headers are protected from caller overrides. Per-call custom headers override client headers without regard to case.
+
+Request bodies of at least 1 KiB use zstd compression by default, including multipart image uploads. Pass `compression: .disabled` to `TypeSafeClient` for gateways that do not accept compressed requests. The package builds the official `facebook/zstd` library from source; no system zstd installation is required. Debug body logging is limited to 4096 bytes. Multipart bodies retain image buffers as separate segments. Compression reads those segments directly; uncompressed uploads send them in bounded chunks. Retries reuse the prepared bytes and multipart boundary. Custom transports can use `request.bodySegments` to avoid flattening; `request.body` remains available as a buffered compatibility view.
+
+Choice requires at least one criterion. Noul requires instructions or at least one non-null outcome description; a bare `Noul()` or `.noul()` fails before sending. Non-finite numbers in content serialize as `"NaN"`, `"Infinity"`, and `"-Infinity"` strings.
 
 ## Errors and logging
 

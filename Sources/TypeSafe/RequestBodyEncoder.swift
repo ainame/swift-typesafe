@@ -3,7 +3,13 @@ import Foundation
 /// Writes the request directly into one buffer. Foundation handles JSON escaping and values;
 /// object boundaries are written here because keyed JSON encoding does not preserve criteria order.
 struct RequestBodyEncoder {
-    private let encoder = JSONEncoder()
+    private let encoder: JSONEncoder
+    private let assets: [String: Image]
+    private var found: [String: Image] = [:]
+    init(assets: [String: Image] = [:]) {
+        self.assets = assets
+        encoder = JSONEncoder()
+    }
     private var data = Data()
 
     mutating func encode(
@@ -11,6 +17,13 @@ struct RequestBodyEncoder {
     ) throws -> Data {
         var fields: [String: JSONValue] = ["state": state, "model": .string(model)]
         fields.merge(extraBody, uniquingKeysWith: { _, last in last })
+        found.removeAll(keepingCapacity: true)
+        for value in fields.values { value.collectImages(into: &found) }
+        if fields["questions"] == nil {
+            for question in questions.values { question.collectImages(into: &found) }
+        }
+        // Encoding is synchronous: its context needs only immutable alias lookups, not shared mutation.
+        encoder.userInfo[.imageReferences] = ImageReferences(assets: assets)
         let keys = Set(fields.keys).union(["questions"]).sorted()
         try writeObject(keys, key: { $0 }) { writer, key in
             if let value = fields[key] {
@@ -24,6 +37,24 @@ struct RequestBodyEncoder {
         return data
     }
 
+    func pendingAssets(explicit: [String: Image], attached: [String: Image]) -> [(String, Image)] {
+        var pending = explicit.keys.sorted().map { ($0, explicit[$0]!) }
+        var names = Set(explicit.keys)
+        var known = attached
+        for image in explicit.values { known[image.description] = image }
+        known.merge(found, uniquingKeysWith: { _, last in last })
+        let text = String(decoding: data, as: UTF8.self)
+        let pattern = try! NSRegularExpression(pattern: "<image:[0-9a-f]{32}>")
+        for match in pattern.matches(in: text, range: NSRange(text.startIndex..., in: text)) {
+            let reference = String(text[Range(match.range, in: text)!])
+            if !names.contains(reference), let image = known[reference] {
+                names.insert(reference)
+                pending.append((reference, image))
+            }
+        }
+        return pending
+    }
+
     private mutating func writeQuestion(_ question: Question) throws {
         switch question {
         case .raw(let fields): try write(fields)
@@ -35,6 +66,8 @@ struct RequestBodyEncoder {
             try writeQuestion(type: "noul", instructions: instructions, hasCriteria: criteria != nil) { writer in
                 if let criteria { try writer.writeCriteria(criteria) }
             }
+        case .box(let instructions):
+            try writeQuestion(type: "box", instructions: instructions, hasCriteria: false) { _ in }
         case .score(let instructions, let criteria):
             try writeQuestion(type: "score", instructions: instructions) { writer in
                 try writer.write(criteria)
@@ -84,4 +117,19 @@ struct RequestBodyEncoder {
     private mutating func write<Value: Encodable>(_ value: Value) throws {
         data.append(try encoder.encode(value))
     }
+}
+
+extension CodingUserInfoKey {
+    static let imageReferences = CodingUserInfoKey(rawValue: "TypeSafe.imageReferences")!
+}
+
+/// Immutable context shared with Foundation's synchronous encoding callbacks.
+struct ImageReferences: Sendable {
+    private let aliases: [String: String]
+    init(assets: [String: Image]) {
+        var aliases: [String: String] = [:]
+        for name in assets.keys.sorted() { aliases[assets[name]!.description] = name }
+        self.aliases = aliases
+    }
+    func reference(for image: Image) -> String { aliases[image.description] ?? image.description }
 }

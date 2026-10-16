@@ -1,5 +1,7 @@
 """Loopback-only server for HTTPClient tests; never contacts the TypeSafe API."""
 import json
+from email.parser import BytesParser
+from email.policy import default
 import signal
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -36,7 +38,27 @@ class Handler(BaseHTTPRequestHandler):
             data = b''.join(chunks)
         else:
             data = self.rfile.read(int(self.headers.get('content-length', 0)))
-        body = json.loads(data)
+        if self.path.startswith('/retry/') and not self.headers.get('x-typesafe-retry-count'):
+            self.respond(429, {'message': 'retry'}, {'retry-after-ms': '0'})
+            return
+        if self.headers.get('content-encoding') == 'zstd':
+            from compression.zstd import decompress
+            data = decompress(data)
+        content_type = self.headers.get('content-type', '')
+        asset_count = 0
+        asset_bytes = 0
+        if content_type.startswith('multipart/form-data;'):
+            message = BytesParser(policy=default).parsebytes(
+                ('Content-Type: ' + content_type + '\r\nMIME-Version: 1.0\r\n\r\n').encode() + data)
+            parts = {part.get_param('name', header='content-disposition'): part.get_payload(decode=True)
+                     for part in message.iter_parts()}
+            body = json.loads(parts.pop('request'))
+            assert all(asset['part'] in parts for asset in body['assets'].values())
+            assert len(parts) == len(body['assets'])
+            asset_count = len(parts)
+            asset_bytes = sum(map(len, parts.values()))
+        else:
+            body = json.loads(data)
         answers = {}
         for key, question in body['questions'].items():
             if question['type'] == 'noul':
@@ -44,10 +66,17 @@ class Handler(BaseHTTPRequestHandler):
             elif question['type'] == 'choice':
                 labels = list(question['criteria'])
                 answers[key] = {'type': 'choice', 'choice': labels[0], 'confidence': 1, 'probabilities': {k: int(k == labels[0]) for k in labels}}
+            elif question['type'] == 'box':
+                answers[key] = {'type': 'box', 'box': {'top': 0.1, 'bottom': 0.9, 'left': 0.2, 'right': 0.8}, 'confidence': None}
             else:
                 rubric = question['criteria']
                 answers[key] = {'type': 'score', 'score': 0, 'confidence': 1, 'legend': {str(i): c for i, c in enumerate(rubric)}, 'probabilities': {str(i): int(i == 0) for i in range(len(rubric))}}
-        self.respond(200, {'model': body['model'], 'usage': {}, 'answers': answers})
+        if self.path.startswith('/stall/'):
+            time.sleep(30)
+        result = {'model': body['model'], 'usage': {}, 'answers': answers}
+        if self.path.startswith('/large/'):
+            result['padding'] = 'x' * 8192
+        self.respond(200, result, {'x-seen-assets': str(asset_count), 'x-seen-asset-bytes': str(asset_bytes)}, slow=self.path.startswith('/slowbody/'))
     def respond(self, status, body, extra=None, slow=False):
         data = json.dumps(body).encode()
         self.send_response(status)

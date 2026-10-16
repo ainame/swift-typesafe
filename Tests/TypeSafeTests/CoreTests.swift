@@ -61,7 +61,7 @@ import Testing
 func malformedAnswerPaths(json: String) async throws {
     let mock = MockTransport { _, _ in response(json) }
     do {
-        _ = try await client(mock).systemOne(state: "s", questions: ["a": .noul()])
+        _ = try await client(mock).systemOne(state: "s", questions: ["a": .noul(instructions: "?")])
         Issue.record("Expected response validation failure")
     } catch TypeSafeError.responseValidation(let api, let fieldPath) {
         #expect(fieldPath == "answers.a.noul")
@@ -73,7 +73,7 @@ func malformedAnswerPaths(json: String) async throws {
 @Test func unknownAnswersAreSkippedAndRetainedInRawBody() async throws {
     let json = #"{"model":"m","usage":{},"answers":{"future":{"type":"future","x":1},"a":{"type":"noul","noul":0.5,"extra":true}},"extra":true}"#
     let mock = MockTransport { _, _ in response(json) }
-    let result = try await client(mock).systemOne(state: "s", questions: ["a": .noul()])
+    let result = try await client(mock).systemOne(state: "s", questions: ["a": .noul(instructions: "?")])
     #expect(result.answers.count == 1)
     #expect(result.rawHTTPResponse?.body == Data(json.utf8))
 }
@@ -89,7 +89,7 @@ private struct KnownResponse: Decodable, Sendable {
 
 @Test func customResponseModelDecodesKnownFields() async throws {
     let result = try await client().systemOne(
-        state: "message", questions: ["spam": .noul()], responseModel: KnownResponse.self
+        state: "message", questions: ["spam": .noul(instructions: "?")], responseModel: KnownResponse.self
     )
     #expect(result.model == "jev-latest")
     #expect(result.answers.spam.noul == 0.98)
@@ -97,7 +97,7 @@ private struct KnownResponse: Decodable, Sendable {
 
 @Test func explicitDefaultResponseModelPreservesSDKMetadata() async throws {
     let result = try await client().systemOne(
-        state: "message", questions: ["spam": .noul()], responseModel: SystemOneResponse.self
+        state: "message", questions: ["spam": .noul(instructions: "?")], responseModel: SystemOneResponse.self
     )
     #expect(result.requestID == "req_123")
     #expect(result.rawHTTPResponse?.body == Data(resultFixture.utf8))
@@ -106,7 +106,7 @@ private struct KnownResponse: Decodable, Sendable {
 @Test func customResponseModelReportsValidationPath() async throws {
     let mock = MockTransport { _, _ in response(#"{"model":"m","usage":{},"answers":{"spam":{"type":"noul"}}}"#) }
     do {
-        _ = try await client(mock).systemOne(state: "message", questions: ["spam": .noul()], responseModel: KnownResponse.self)
+        _ = try await client(mock).systemOne(state: "message", questions: ["spam": .noul(instructions: "?")], responseModel: KnownResponse.self)
         Issue.record("Expected response validation failure")
     } catch TypeSafeError.responseValidation(let api, let fieldPath) {
         #expect(fieldPath == "answers.spam.noul")
@@ -117,7 +117,7 @@ private struct KnownResponse: Decodable, Sendable {
 @Test func customResponseModelPreservesAPIError() async throws {
     let mock = MockTransport { _, _ in response(#"{"detail":"Invalid request"}"#, status: 400) }
     do {
-        _ = try await client(mock).systemOne(state: "message", questions: ["spam": .noul()], responseModel: KnownResponse.self)
+        _ = try await client(mock).systemOne(state: "message", questions: ["spam": .noul(instructions: "?")], responseModel: KnownResponse.self)
         Issue.record("Expected API error")
     } catch TypeSafeError.api(let error) {
         #expect(error.kind == .badRequest)

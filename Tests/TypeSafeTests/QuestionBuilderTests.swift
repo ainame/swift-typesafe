@@ -36,7 +36,7 @@ private let builderFixture = resultFixture
 @Test func builderSingleAnswerAndRepeatedQuestionTypes() async throws {
     let json = #"{"model":"m","usage":{},"answers":{"question_0":{"type":"noul","noul":0.2},"question_1":{"type":"noul","noul":0.8}}}"#
     let mock = MockTransport { _, _ in response(json) }
-    let single = try await client(mock).systemOne(state: "s") { Noul() }.answers
+    let single = try await client(mock).systemOne(state: "s") { Noul("?") }.answers
     let _: NoulAnswer = single
     #expect(single.noul == 0.2)
     let (first, second) = try await client(mock).systemOne(state: "s") {
@@ -59,7 +59,7 @@ private func localQuestions() -> Questions<(ChoiceAnswer<Tone>, NoulAnswer, Scor
     let c = try client(mock)
     let (tone, spam, quality): (ChoiceAnswer<Tone>, NoulAnswer, ScoreAnswer) = try await c.systemOne(state: "s") {
         Choice<Tone>()
-        Noul()
+        Noul("?")
         Score(criteria: ["bad", "ok", "great"])
     }.answers
     let reused = try await c.systemOne(state: "s", questions: localQuestions).answers
@@ -73,8 +73,8 @@ private func localQuestions() -> Questions<(ChoiceAnswer<Tone>, NoulAnswer, Scor
     let json = "{\"model\":\"m\",\"usage\":{},\"answers\":{\(answers)}}"
     let mock = MockTransport { _, _ in response(json) }
     let values = try await client(mock).systemOne(state: "s") {
-        Noul(); Noul(); Noul(); Noul(); Noul(); Noul()
-        Noul(); Noul(); Noul(); Noul(); Noul(); Noul()
+        Noul("?"); Noul("?"); Noul("?"); Noul("?"); Noul("?"); Noul("?")
+        Noul("?"); Noul("?"); Noul("?"); Noul("?"); Noul("?"); Noul("?")
     }.answers
     #expect(values.0.noul == 0)
     #expect(values.9.noul == 9.0 / 12)
@@ -131,10 +131,10 @@ private func localQuestions() -> Questions<(ChoiceAnswer<Tone>, NoulAnswer, Scor
         return message == "Score question 'question_0' requires at least one criterion."
     }
     await #expect {
-        _ = try await c.systemOne(state: .null) { Noul() }
+        _ = try await c.systemOne(state: .null) { Noul("?") }
     } throws: { error in
         guard case TypeSafeError.configuration(let message) = error else { return false }
-        return message == "state must be text, an object, or an array."
+        return message == "state must be text, an image, an object, or an array."
     }
     #expect(await mock.requests.isEmpty)
 }
@@ -175,7 +175,7 @@ func builderValidatesEveryAnswer(name: String) async throws {
     do {
         _ = try await client(mock).systemOne(state: "s") {
             Choice<Tone>()
-            Noul()
+            Noul("?")
             Score(criteria: ["only"])
         }
         Issue.record("Expected response validation failure")
@@ -198,7 +198,7 @@ func builderValidatesEveryAnswer(name: String) async throws {
     #expect(await mock.requests.last?.headers["x-typesafe-retry-count"] == "1")
     let failing = MockTransport { _, _ in response("bad request", status: 400) }
     do {
-        _ = try await client(failing).systemOne(state: "s") { Noul() }
+        _ = try await client(failing).systemOne(state: "s") { Noul("?") }
         Issue.record("Expected API error")
     } catch TypeSafeError.api(let error) {
         #expect(error.status == 400)
@@ -279,7 +279,7 @@ private struct SpamProbability: TypedQuestion {
     let json = #"{"model":"m","usage":{},"answers":{"question_0":{"type":"noul","noul":0.75}}}"#
     let raw = response(json, headers: [:])
     let mock = MockTransport { _, _ in raw }
-    let result: TypedSystemOneResponse<NoulAnswer> = try await client(mock).systemOne(state: "s") { Noul() }
+    let result: TypedSystemOneResponse<NoulAnswer> = try await client(mock).systemOne(state: "s") { Noul("?") }
     #expect(result.answers.noul == 0.75)
     #expect(result.model == "m")
     #expect(result.usage.inputTokens == nil)

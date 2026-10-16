@@ -1,9 +1,11 @@
 import Foundation
 
-/// A JSON value for dynamic state, descriptions, and extension fields.
+/// Dynamic content and extension fields, including images serialized as request references.
 public enum JSONValue: Sendable, Equatable, Codable {
     case null, bool(Bool), integer(Int64), number(Double), string(String)
     case array([JSONValue]), object([String: JSONValue])
+    /// An image placed anywhere in request content, serialized as its alias or reference.
+    case image(Image)
 
     public init(from decoder: any Decoder) throws {
         let container = try decoder.singleValueContainer()
@@ -22,10 +24,15 @@ public enum JSONValue: Sendable, Equatable, Codable {
         case .null: try container.encodeNil()
         case .bool(let value): try container.encode(value)
         case .integer(let value): try container.encode(value)
-        case .number(let value): try container.encode(value)
+        case .number(let value):
+            if value.isFinite { try container.encode(value) }
+            else { try container.encode(value.isNaN ? "NaN" : value > 0 ? "Infinity" : "-Infinity") }
         case .string(let value): try container.encode(value)
         case .array(let value): try container.encode(value)
         case .object(let value): try container.encode(value)
+        case .image(let image):
+            let references = encoder.userInfo[.imageReferences] as? ImageReferences
+            try container.encode(references?.reference(for: image) ?? image.description)
         }
     }
 
@@ -44,8 +51,19 @@ public enum JSONValue: Sendable, Equatable, Codable {
         self = try JSONDecoder().decode(Self.self, from: JSONEncoder().encode(value))
     }
 
+    func collectImages(into images: inout [String: Image]) {
+        switch self {
+        case .image(let image): images[image.description] = image
+        case .array(let values):
+            for value in values { value.collectImages(into: &images) }
+        case .object(let fields):
+            for value in fields.values { value.collectImages(into: &images) }
+        default: break
+        }
+    }
+
     var isContent: Bool {
-        switch self { case .string, .array, .object: true; default: false }
+        switch self { case .string, .array, .object, .image: true; default: false }
     }
 }
 
@@ -71,4 +89,9 @@ extension JSONValue: ExpressibleByDictionaryLiteral {
     public init(dictionaryLiteral elements: (String, JSONValue)...) {
         self = .object(Dictionary(elements, uniquingKeysWith: { _, last in last }))
     }
+}
+
+extension JSONValue {
+    /// Places loaded image file bytes into structured state, instructions, or criteria.
+    public static func image(_ data: Data) -> Self { .image(Image(data: data)) }
 }

@@ -38,7 +38,7 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
             }
             guard let variable = member.decl.as(VariableDeclSyntax.self) else { continue }
             let markers = variable.attributes.compactMap { $0.as(AttributeSyntax.self) }.filter {
-                ["Choice", "Noul", "Score"].contains($0.attributeName.trimmedDescription.split(separator: ".").last.map(String.init) ?? "")
+                ["Choice", "Noul", "Score", "Box"].contains($0.attributeName.trimmedDescription.split(separator: ".").last.map(String.init) ?? "")
             }
             let isStatic = variable.modifiers.contains { ["static", "class"].contains($0.name.text) }
             if markers.isEmpty {
@@ -46,7 +46,7 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
                     throw MacroError("questions is reserved for @QuestionSet generated code.")
                 }
                 if !isStatic, variable.bindings.contains(where: { $0.accessorBlock == nil }) {
-                    throw MacroError("Every stored property in @QuestionSet must have a @Choice, @Noul, or @Score marker.")
+                    throw MacroError("Every stored property in @QuestionSet must have a @Choice, @Noul, @Score, or @Box marker.")
                 }
                 continue
             }
@@ -63,7 +63,10 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
             let marker = markers[0]
             let kind = String(marker.attributeName.trimmedDescription.split(separator: ".").last!)
             let valueType = annotation.type.trimmedDescription
-            if kind != "Choice", !["Double", "Swift.Double"].contains(valueType) {
+            if kind == "Box", !["BoxCoordinates", "TypeSafe.BoxCoordinates"].contains(valueType) {
+                throw MacroError("@Box properties must have type BoxCoordinates.")
+            }
+            if kind != "Choice", kind != "Box", !["Double", "Swift.Double"].contains(valueType) {
                 throw MacroError("@\(kind) properties must have type Double.")
             }
             let arguments: LabeledExprListSyntax
@@ -78,6 +81,10 @@ public struct QuestionSetMacro: MemberMacro, ExtensionMacro {
                 question = ".choice(instructions: \(instructions), criteria: TypeSafe.makeChoiceCriteria(for: \(valueType).self, descriptions: \(criteria ?? "nil")))"
                 answerType = "TypeSafe.ChoiceAnswer<\(valueType)>"
                 decode = "try response.choice(named: \(String(reflecting: name)), as: \(valueType).self)"
+            case "Box":
+                question = ".box(instructions: \(instructions))"
+                answerType = "TypeSafe.BoxAnswer"
+                decode = "try response.box(named: \(String(reflecting: name)))"
             case "Score":
                 guard let criteria else { throw MacroError("@Score requires an ordered criteria array.") }
                 question = ".score(instructions: \(instructions), criteria: \(criteria))"

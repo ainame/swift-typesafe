@@ -91,3 +91,61 @@ import TypeSafeMacros
         failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
     )
 }
+
+@Test func generatesBoxSchemaAndAnswer() {
+    assertMacroExpansion(
+        """
+        @QuestionSet
+        struct Questions {
+            @Box("Subject") var subject: BoxCoordinates
+        }
+        """,
+        expandedSource: """
+        struct Questions {
+            var subject: BoxCoordinates
+
+            static var questions: [String: TypeSafe.Question] {
+                ["subject": .box(instructions: "Subject")]
+            }
+
+            struct Answers: Sendable {
+                let subject: TypeSafe.BoxAnswer
+            }
+
+            static func decodeAnswers(from response: TypeSafe.SystemOneResponse) throws -> Answers {
+                Answers(subject: try response.box(named: "subject"))
+            }
+        }
+
+        extension Questions: TypeSafe.QuestionSet {
+        }
+        """,
+        macroSpecs: [
+            "QuestionSet": MacroSpec(type: QuestionSetMacro.self, conformances: ["QuestionSet"]),
+            "Box": MacroSpec(type: QuestionMarkerMacro.self),
+        ],
+        failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+    )
+}
+
+@Test func invalidBoxTypeDiagnostic() {
+    assertMacroExpansion(
+        """
+        @QuestionSet
+        struct Questions {
+            @Box("Subject") var subject: Double
+        }
+        """,
+        expandedSource: """
+        struct Questions {
+            @Box("Subject") var subject: Double
+        }
+
+        extension Questions: TypeSafe.QuestionSet {
+        }
+        """,
+        diagnostics: [DiagnosticSpec(message: "@Box properties must have type BoxCoordinates.", line: 1, column: 1)],
+        macroSpecs: ["QuestionSet": MacroSpec(type: QuestionSetMacro.self)],
+        failureHandler: { Issue.record(Comment(rawValue: $0.message)) }
+    )
+}
