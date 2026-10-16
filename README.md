@@ -9,7 +9,7 @@ Uses Apple's experimental [HTTPClient](https://github.com/apple/swift-http-api-p
 Add [swift-typesafe](https://github.com/ainame/swift-typesafe) to your Swift package dependencies:
 
 ```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.4")
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.5")
 ```
 
 Add the `TypeSafe` product to your target:
@@ -128,13 +128,16 @@ print(typed.answers.spam.noul)
 
 ### Images and boxes
 
-These APIs are included in the upcoming Swift 0.7.5 release.
+Available in Swift 0.7.5. Images and Box require the experimental `TypeSafe-Danger-Zone-Images: true` header. Box needs Jev 1.14; the examples pin `jev-1.14.0`.
 
 ```swift
 import Foundation
 
 let photo = Image(fileURL: URL(fileURLWithPath: "product.jpg"))
-let located = try await client.systemOne(state: photo, model: "jev-preview") {
+let located = try await client.systemOne(
+    state: photo, model: "jev-1.14.0",
+    options: .init(headers: ["TypeSafe-Danger-Zone-Images": "true"])
+) {
     Box("The product")
 }
 print(located.answers.box) // BoxCoordinates: top, bottom, left, right
@@ -144,7 +147,10 @@ Already loaded the image? Wrap its bytes in `Image` and pass it as `state` with 
 
 ```swift
 let photo = Image(data: imageData)
-let located = try await client.systemOne(state: photo, model: "jev-preview") {
+let located = try await client.systemOne(
+    state: photo, model: "jev-1.14.0",
+    options: .init(headers: ["TypeSafe-Danger-Zone-Images": "true"])
+) {
     Box("The product")
 }
 ```
@@ -225,7 +231,7 @@ The default transport is backed by one HTTP implementation from Apple's proposal
 To use AsyncHTTPClient instead:
 
 ```swift
-.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.4", traits: ["AsyncHTTPClient"])
+.package(url: "https://github.com/ainame/swift-typesafe.git", from: "0.7.5", traits: ["AsyncHTTPClient"])
 ```
 
 With `traits: []`, neither backend is compiled. Inject a transport or client (see [Custom HTTP clients](#custom-http-clients)); the default transport throws `TypeSafeError.configuration`.
@@ -262,7 +268,7 @@ Releases use [Semantic Versioning](https://semver.org) tags without a `v` prefix
 - Each [CHANGELOG](CHANGELOG.md) entry names the Python release it implements. [UPSTREAM.md](UPSTREAM.md) keeps the full mapping and exact upstream commits. [The parity record](docs/parity.md) lists verified behavior and Swift adaptations.
 - `TypeSafeClient.version`, sent in the `user-agent` and `x-typesafe-sdk` headers, reports the implemented Python SDK version, not this package's tag.
 
-`from: "0.7.4"` resolves new patch and minor releases below 1.0.0. While the SDK is 0.x, a new MINOR can contain breaking changes, following upstream. To stay on one Python API generation, use `.upToNextMinor(from: "0.7.4")`.
+`from: "0.7.5"` resolves new patch and minor releases below 1.0.0. While the SDK is 0.x, a new MINOR can contain breaking changes, following upstream. To stay on one Python API generation, use `.upToNextMinor(from: "0.7.5")`.
 
 ## Development
 

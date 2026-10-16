@@ -14,7 +14,7 @@ MAJOR.MINOR follows the Python SDK release; PATCH belongs to this package (see [
 
 | Swift release | Python SDK | Notes |
 | --- | --- | --- |
-| 0.7.5 (planned) | 0.7.5 | Images, Box, compression, and request validation sync |
+| 0.7.5 | 0.7.5 | Images, Box, compression, and request validation sync |
 | 0.7.4 | 0.7.2 | Swift-only: preserve Choice and Noul criteria order |
 | 0.7.3 | 0.7.2 | Upstream packaging and documentation sync; no runtime change |
 | 0.7.2 | 0.7.1 | Swift-only: HTTP backend package traits and package-owned patch numbering |
@@ -51,5 +51,6 @@ JS 0.7.0 adds similar asset/Box APIs and optional zstd. Its stricter checks for 
 
 - Swift 6.4.0 through swiftly on macOS arm64.
 - Full results are recorded in `docs/parity.md`.
-- Linux verification was attempted in Docker, but the Swift image could not be unpacked after the host exhausted available disk space. No Linux tests ran.
-- Production API calls, hosted CI, and Apple mobile device/simulator tests were not run for this sync.
+- Linux verification was attempted in Docker, but the Swift image could not be unpacked after the host exhausted available disk space. No local Linux tests ran.
+- Hosted CI for the merged SDK sync passed on macOS 26 (both HTTP backends) and Ubuntu 24.04: [run](https://github.com/ainame/swift-typesafe/actions/runs/38870063001).
+- All six live image/Box example scenarios passed against `jev-1.14.0` on 2026-10-16; see `docs/parity.md`. Apple mobile device/simulator tests were not run.
