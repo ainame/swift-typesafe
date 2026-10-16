@@ -282,3 +282,19 @@ git diff --check
 ```
 
 Tests use Swift Testing and Python 3 for ephemeral loopback HTTP servers. They do not need an API key. The example executable makes real API calls and requires credentials. The repository includes a pinned upstream submodule and an [upstream sync skill](.agents/skills/typesafe-upstream-sync/SKILL.md).
+
+### Image and Box examples
+
+With `TYPESAFE_API_KEY` set in your environment, run:
+
+```sh
+swiftly run swift run --package-path Examples Example --images
+```
+
+This opt-in mode makes six paid requests to `jev-1.14.0` with the image opt-in header. It uses a bundled synthetic 512×512 PNG with a centered red square and checks returned Box bounds against the known location. Each scenario runs with zstd enabled and disabled:
+
+- Loaded `Data` with builder questions.
+- A file-backed `Image` with macro questions.
+- Scoped references with dynamic questions.
+
+These are integration smoke checks, not a general image-accuracy benchmark. Running without `--images` keeps the existing text examples.
