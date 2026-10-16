@@ -68,6 +68,19 @@ func transportErrorRedactsCredentials(credential: String) async throws {
     let logger = Logger(label: "test") { _ in RecordingLogHandler(recorder: recorder) }
     let mock = MockTransport { _, _ in response(#"{"model":"m","usage":{},"answers":{"new":{"type":"future"}}}"#) }
     let c = try TypeSafeClient(apiKey: "k", transport: mock, logger: logger, environment: ["TYPESAFE_LOG_LEVEL": "warning"])
-    _ = try await c.systemOne(state: "s", questions: ["q": .noul()])
+    _ = try await c.systemOne(state: "s", questions: ["q": .noul(instructions: "?")])
     #expect(recorder.entries.withLock { $0.contains { $0.contains("unrecognized type 'future'") } })
+}
+
+@Test func largeBodiesAreLoggedUncompressedAndTruncated() async throws {
+    let recorder = LogRecorder()
+    let logger = Logger(label: "test") { _ in RecordingLogHandler(recorder: recorder) }
+    let mock = MockTransport()
+    let c = try TypeSafeClient(apiKey: "k", transport: mock, logger: logger, environment: ["TYPESAFE_LOG_LEVEL": "debug"])
+    _ = try await c.systemOne(state: .string(String(repeating: "a", count: 8192) + "after-body-limit"), questions: ["q": .box()])
+    let logs = recorder.entries.withLock { $0.joined(separator: "\n") }
+    #expect(logs.contains("aaaa"))
+    #expect(logs.contains("bytes)"))
+    #expect(!logs.contains("after-body-limit"))
+    #expect(await mock.requests.first?.headers["content-encoding"] == "zstd")
 }

@@ -57,6 +57,15 @@ public struct Score: TypedQuestion {
     }
 }
 
+/// Locates the subject described by the instructions in an image.
+public struct Box: TypedQuestion {
+    public let question: Question
+    public init(_ instructions: JSONValue? = nil) { question = .box(instructions: instructions) }
+    public func decodeAnswer(from response: SystemOneResponse, named name: String) throws -> BoxAnswer {
+        try response.box(named: name)
+    }
+}
+
 /// The ordered questions and typed answer projection produced by `QuestionBuilder`.
 ///
 /// `Answers` is a flat tuple, or the answer type itself for a single question.
@@ -102,12 +111,12 @@ extension TypeSafeClient {
     /// when runtime-sized question collections are needed.
     public nonisolated(nonsending) func systemOne<Answers: Sendable>(
         state: JSONValue, model: String? = nil,
-        extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions(),
+        extraBody: [String: JSONValue] = [:], assets: [String: Image] = [:], options: RequestOptions = RequestOptions(),
         @QuestionBuilder questions: () throws -> Questions<Answers>
     ) async throws -> TypedSystemOneResponse<Answers> {
         let questions = try questions()
         let response = try await systemOne(
-            state: state, questions: questions.questions, model: model, extraBody: extraBody, options: options
+            state: state, questions: questions.questions, model: model, extraBody: extraBody, assets: assets, options: options
         )
         return TypedSystemOneResponse(answers: try questions.decodeAnswers(response), response: response)
     }

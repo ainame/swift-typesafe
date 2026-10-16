@@ -49,8 +49,37 @@ public struct ScoreAnswer: Codable, Sendable, Equatable {
     }
 }
 
+/// Box edges as fractions of image height and width.
+public struct BoxCoordinates: Codable, Sendable, Equatable {
+    public let top: Double
+    public let bottom: Double
+    public let left: Double
+    public let right: Double
+    public init(top: Double, bottom: Double, left: Double, right: Double) {
+        self.top = top; self.bottom = bottom; self.left = left; self.right = right
+    }
+}
+
+public struct BoxAnswer: Codable, Sendable, Equatable {
+    public let box: BoxCoordinates
+    public let confidence: Double?
+    public init(box: BoxCoordinates, confidence: Double?) { self.box = box; self.confidence = confidence }
+    enum CodingKeys: CodingKey { case box, confidence }
+    public init(from decoder: any Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        box = try c.decode(BoxCoordinates.self, forKey: .box)
+        // Required, but nullable, matching the upstream wire model.
+        confidence = try c.decode(Double?.self, forKey: .confidence)
+    }
+    public func encode(to encoder: any Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(box, forKey: .box)
+        try c.encode(confidence, forKey: .confidence)
+    }
+}
+
 public enum Answer: Sendable, Equatable, Codable {
-    case noul(NoulAnswer), choice(ChoiceAnswer<String>), score(ScoreAnswer)
+    case noul(NoulAnswer), choice(ChoiceAnswer<String>), score(ScoreAnswer), box(BoxAnswer)
     enum CodingKeys: CodingKey { case type }
     public init(from decoder: any Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -58,6 +87,7 @@ public enum Answer: Sendable, Equatable, Codable {
         case "noul": self = .noul(try NoulAnswer(from: decoder))
         case "choice": self = .choice(try ChoiceAnswer<String>(from: decoder))
         case "score": self = .score(try ScoreAnswer(from: decoder))
+        case "box": self = .box(try BoxAnswer(from: decoder))
         default: throw DecodingError.dataCorruptedError(forKey: .type, in: c, debugDescription: "Unknown answer type.")
         }
     }
@@ -67,6 +97,7 @@ public enum Answer: Sendable, Equatable, Codable {
         case .noul(let value): try c.encode("noul", forKey: .type); try value.encode(to: encoder)
         case .choice(let value): try c.encode("choice", forKey: .type); try value.encode(to: encoder)
         case .score(let value): try c.encode("score", forKey: .type); try value.encode(to: encoder)
+        case .box(let value): try c.encode("box", forKey: .type); try value.encode(to: encoder)
         }
     }
 }
@@ -104,6 +135,7 @@ public struct SystemOneResponse: Codable, Sendable {
     public var requestID: String? { rawHTTPResponse?.requestID }
     public var nouls: [String: NoulAnswer] { answers.compactMapValues { if case .noul(let a) = $0 { a } else { nil } } }
     public var choices: [String: ChoiceAnswer<String>] { answers.compactMapValues { if case .choice(let a) = $0 { a } else { nil } } }
+    public var boxes: [String: BoxAnswer] { answers.compactMapValues { if case .box(let a) = $0 { a } else { nil } } }
     public var scores: [String: ScoreAnswer] { answers.compactMapValues { if case .score(let a) = $0 { a } else { nil } } }
     enum CodingKeys: CodingKey { case model, usage, answers }
 
@@ -116,7 +148,7 @@ public struct SystemOneResponse: Codable, Sendable {
         for key in fields.allKeys {
             let tag = try fields.nestedContainer(keyedBy: Answer.CodingKeys.self, forKey: key)
             let type = try tag.decode(String.self, forKey: .type)
-            if ["noul", "choice", "score"].contains(type) {
+            if ["noul", "choice", "score", "box"].contains(type) {
                 result[key.stringValue] = try fields.decode(Answer.self, forKey: key)
             } else {
                 ignoredAnswerTypes[key.stringValue] = type
@@ -127,6 +159,10 @@ public struct SystemOneResponse: Codable, Sendable {
 
     public func noul(named name: String) throws -> NoulAnswer {
         guard case .noul(let answer) = answers[name] else { throw invalidAnswer(name) }
+        return answer
+    }
+    public func box(named name: String) throws -> BoxAnswer {
+        guard case .box(let answer) = answers[name] else { throw invalidAnswer(name) }
         return answer
     }
     public func score(named name: String) throws -> ScoreAnswer {

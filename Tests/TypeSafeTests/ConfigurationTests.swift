@@ -9,7 +9,7 @@ func configurationPrecedence(source: String) async throws {
     let c = try TypeSafeClient(apiKey: source == "explicit" ? "code-key" : source == "default" ? "test-key" : nil,
         baseURL: source == "explicit" ? "https://code.test///" : nil,
         model: source == "explicit" ? "code-model" : nil, transport: mock, environment: env)
-    _ = try await c.systemOne(state: "hello", questions: ["q": .noul()])
+    _ = try await c.systemOne(state: "hello", questions: ["q": .noul(instructions: "?")])
     let request = try #require(await mock.requests.first)
     let body = try JSONDecoder().decode(JSONValue.self, from: #require(request.body))
     #expect(request.headers["authorization"] == "Bearer " + (source == "explicit" ? "code-key" : source == "environment" ? "env-key" : "test-key"))
@@ -67,15 +67,14 @@ func invalidTimeoutsFailBeforeNetwork(value: Double) async throws {
                                         ["q": .raw(["type": "choice"])], ["q": .score(criteria: [])]] {
         await #expect(throws: TypeSafeError.self) { _ = try await client(mock).systemOne(state: "s", questions: questions) }
     }
-    await #expect(throws: TypeSafeError.self) { _ = try await client(mock).systemOne(state: .null, questions: ["q": .noul()]) }
-    await #expect(throws: TypeSafeError.self) { _ = try await client(mock).systemOne(state: ["invalid": .number(.nan)], questions: ["q": .noul()]) }
+    await #expect(throws: TypeSafeError.self) { _ = try await client(mock).systemOne(state: .null, questions: ["q": .noul(instructions: "?")]) }
     #expect(await mock.requests.isEmpty)
 }
 
 @Test func optionalDescriptionsAndNestedJSON() async throws {
     let mock = MockTransport()
     _ = try await client(mock).systemOne(state: ["first", ["second": nil]], questions: [
-        "omitted": .noul(), "explicit": .raw(["type": "noul", "instructions": nil, "criteria": nil]),
+        "omitted": .noul(criteria: ["true": "yes"]), "explicit": .raw(["type": "noul", "instructions": nil, "criteria": ["true": "yes", "false": nil]]),
         "rich": .choice(instructions: ["question": "Which?"], criteria: ["one": ["examples": ["a", nil]], "two": nil]),
     ], model: "custom", options: .init(timeout: 2))
     let request = try #require(await mock.requests.first)

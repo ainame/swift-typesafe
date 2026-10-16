@@ -3,6 +3,26 @@
 Versions follow [Semantic Versioning](https://semver.org). MAJOR.MINOR follows the [Python SDK](https://github.com/typesafe-ai/typesafe-sdk-python) release it implements. PATCH is owned by this package, so it can differ from the Python patch number. See [Versioning](README.md#versioning).
 Each entry names the Python release it implements. Upstream minor releases can include breaking changes while the SDK is 0.x.
 
+## Unreleased
+
+Implements Python SDK 0.7.5. [#10](https://github.com/ainame/swift-typesafe/pull/10)
+
+### Added
+
+- Image uploads across dynamic, macro, builder, and custom-response APIs. Pass `Image` directly as state for bytes, files, or base64; use it in structured content, named references, and scoped attachments. Multipart uploads share image storage and send bounded chunks.
+- Box questions and answers through `Box`, `@Box`, and dynamic `.box`/`.boxes` APIs.
+- Default zstd compression for request bodies of at least 1 KiB, including image uploads. Use `compression: .disabled` for gateways that do not support it. Custom transports can read `bodySegments` to avoid combining the body into one buffer; `body` remains available.
+
+### Changed
+
+- Choice criteria must be nonempty, and Noul questions require instructions or at least one non-null outcome description.
+- Non-finite content numbers serialize as strings. Debug body logs are limited to 4096 bytes.
+
+### Migration
+
+- Update exhaustive switches to handle `JSONValue.image`, `Question.box`, and `Answer.box`.
+- In files importing both SwiftUI and TypeSafe, qualify image types as `SwiftUI.Image` or `TypeSafe.Image`.
+
 ## 0.7.4 - 2026-10-08
 
 Implements Python SDK 0.7.2. This is a Swift-only patch release.

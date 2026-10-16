@@ -18,7 +18,7 @@ public macro Choice(_ instructions: JSONValue? = nil, criteria: Criteria? = nil)
 @attached(peer)
 public macro Choice(_ instructions: JSONValue? = nil, criteria: [String: JSONValue]?) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
-/// Marks a yes probability. Supplied criteria preserve insertion order.
+/// Marks a yes probability. Provide instructions or a described outcome; criteria preserve insertion order.
 @attached(peer)
 public macro Noul(_ instructions: JSONValue? = nil, criteria: Criteria? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
@@ -29,6 +29,10 @@ public macro Noul(_ instructions: JSONValue? = nil, criteria: [String: JSONValue
 /// Marks a Double property representing an expected score (which may be fractional).
 @attached(peer)
 public macro Score(_ instructions: JSONValue? = nil, criteria: [JSONValue]) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
+
+/// Marks a BoxCoordinates property locating a subject in an image.
+@attached(peer)
+public macro Box(_ instructions: JSONValue? = nil) = #externalMacro(module: "TypeSafeMacros", type: "QuestionMarkerMacro")
 
 public struct TypedSystemOneResponse<Answers: Sendable>: Sendable {
     public let answers: Answers
@@ -42,9 +46,9 @@ public struct TypedSystemOneResponse<Answers: Sendable>: Sendable {
 extension TypeSafeClient {
     public func systemOne<Schema: QuestionSet>(
         state: JSONValue, questions: Schema.Type, model: String? = nil,
-        extraBody: [String: JSONValue] = [:], options: RequestOptions = RequestOptions()
+        extraBody: [String: JSONValue] = [:], assets: [String: Image] = [:], options: RequestOptions = RequestOptions()
     ) async throws -> TypedSystemOneResponse<Schema.Answers> {
-        let response = try await systemOne(state: state, questions: Schema.questions, model: model, extraBody: extraBody, options: options)
+        let response = try await systemOne(state: state, questions: Schema.questions, model: model, extraBody: extraBody, assets: assets, options: options)
         return TypedSystemOneResponse(answers: try Schema.decodeAnswers(from: response), response: response)
     }
 }
